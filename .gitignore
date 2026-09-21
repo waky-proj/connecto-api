@@ -1,0 +1,15 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/Connecto.Api/bin/Debug/net10.0
+/Connecto.Api/.vs
+/Connecto.Api/obj
+/Connecto.Application/bin/Debug/net10.0
+/Connecto.Application/obj
+/Connecto.Domain/bin/Debug/net10.0
+/Connecto.Domain/obj
+/Connecto.Infrastructure/bin/Debug/net10.0
+/Connecto.Infrastructure/obj
+/Connecto.Tests.Unit/bin/Debug/net10.0
+/Connecto.Tests.Unit/obj
