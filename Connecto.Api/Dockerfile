@@ -28,5 +28,9 @@ RUN dotnet publish "./Connecto.Api.csproj" -c %BUILD_CONFIGURATION% -o /app/publ
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "Connecto.Api.dll"]
