@@ -7,6 +7,13 @@ on:
       - "**"
 
   workflow_dispatch:
+      inputs:
+        environment:
+          description: "Deployment environment"
+          required: true
+          type: choice
+          options:
+            - production
   
 permissions:
   id-token: write
@@ -22,8 +29,6 @@ jobs:
   deploy:
     name: Build, Push and Deploy
     runs-on: ubuntu-latest
-
-    environment: production
 
     steps:
       - name: Checkout

@@ -10,6 +10,13 @@ on:
       - main
       
   workflow_dispatch:
+      inputs:
+        environment:
+          description: "Deployment environment"
+          required: true
+          type: choice
+          options:
+            - production
 
 permissions:
   contents: read
