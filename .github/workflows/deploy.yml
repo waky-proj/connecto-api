@@ -40,18 +40,6 @@ jobs:
 
       - name: Test
         run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build
-
-      - name: Show AWS role target
-        env:
-          ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-        run: |
-          python3 - "$ROLE_ARN" <<'PY'
-          import sys
-          arn = sys.argv[1]
-          parts = arn.split(":")
-          print(f"AWS account: {parts[4]}")
-          print(f"IAM role: {parts[5].removeprefix('role/')}")
-          PY
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -71,7 +59,7 @@ jobs:
           docker build \
             -f Connecto.Api/Dockerfile \
             -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            Connecto.Api
+            .
 
       - name: Push Docker image
         env:
