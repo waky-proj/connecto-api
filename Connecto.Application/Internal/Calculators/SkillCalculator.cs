@@ -11,7 +11,6 @@ namespace Connecto.Application.Internal.Calculators
         {
             if (need.Skills.Count == 0)
             {
-                score.UpdateSkill(SkillsWeight);
                 return;
             }
 

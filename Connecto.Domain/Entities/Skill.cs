@@ -6,6 +6,9 @@
         Programming,
         Design,
         Marketing,
-        Sales
+        Sales,
+        React,
+        Typescript,
+        Building
     }
 }

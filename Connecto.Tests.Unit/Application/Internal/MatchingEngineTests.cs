@@ -56,7 +56,11 @@ namespace Connecto.Tests.Unit.Application.Internal
         {
             var need = CreateNeed(
                 category: "Web Development",
-                skills: ["React", "TypeScript"]);
+                skills: ["React", "TypeScript"],
+                location: "Auckland",
+                budgetMin: 600m,
+                budgetMax: 600m,
+                deadline: DateTime.UtcNow);
 
             var offering = CreateOffering(
                 category: "Web Development",
@@ -95,11 +99,15 @@ namespace Connecto.Tests.Unit.Application.Internal
         {
             var need = CreateNeed(
                category: "Web Development",
-               skills: ["React", "TypeScript"]);
+               skills: ["React", "TypeScript"],
+               location: "Auckland",
+               budgetMin: 50000m,
+               budgetMax: 100000m,
+               deadline: DateTime.UtcNow);
 
             var offering = CreateOffering(
-                category: "Web Development",
-                skills: ["React"]);
+                category: "Home Renovation",
+                skills: ["Building"]);
 
             var result = _engine.Calculate(need, offering);
 

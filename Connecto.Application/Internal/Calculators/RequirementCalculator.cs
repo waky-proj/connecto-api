@@ -20,10 +20,7 @@ namespace Connecto.Application.Internal.Calculators
             if (categoryMatch)
             {
                 score.UpdateRequirement(RequirementsWeight);
-                return;
             }
-
-            score.UpdateRequirement(RequirementsWeight * 0.25m);
         }
 
         private static decimal Weight => RequirementsWeight * 0.7m;
