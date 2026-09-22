@@ -27,10 +27,10 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore
-        run: dotnet restore Connect.sln
+        run: dotnet restore Connecto.Api/Connecto.Api.slnx
 
       - name: Build
-        run: dotnet build Connect.sln --configuration Release --no-restore
+        run: dotnet build Connecto.Api/Connecto.Api.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test Connect.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build --verbosity normal
