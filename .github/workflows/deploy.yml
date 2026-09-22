@@ -38,7 +38,7 @@ jobs:
         run: dotnet build Connecto.Api/Connecto.Api.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test Connecto.Api/Connecto.Api.slnx--configuration Release --no-build
+        run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -56,28 +56,28 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
-            -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            .
+            -f Connecto.Api/Dockerfile \
+            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            Connecto.Api
 
       - name: Push Docker image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker push \
-            $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Deploy to ECS
         env:
           IMAGE_URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
           aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
             --force-new-deployment
 
       - name: Wait for deployment
         run: |
           aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
