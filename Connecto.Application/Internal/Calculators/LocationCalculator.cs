@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the geographic fit between a need and an offering.
+    /// </summary>
     public class LocationCalculator : ICalculator
     {
         private const decimal LocationWeight = 10m;

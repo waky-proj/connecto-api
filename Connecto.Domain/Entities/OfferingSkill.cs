@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Entities
 {
+    /// <summary>
+    /// Represents a skill attached to an offering.
+    /// </summary>
     public sealed record OfferingSkill
     {
         public OfferingSkill() { }

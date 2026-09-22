@@ -6,6 +6,9 @@ namespace Connecto.Api.Controllers
 {
     [Route("api/needs")]
     [ApiController]
+    /// <summary>
+    /// Handles creation, retrieval, and matching actions for user needs.
+    /// </summary>
     public class NeedsController(IMatchService matchService, INeedService needService) : ControllerBase
     {
 

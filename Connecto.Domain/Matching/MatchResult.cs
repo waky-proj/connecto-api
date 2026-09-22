@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Matching
 {
+    /// <summary>
+    /// Represents the final weighted outcome for a need and offering comparison.
+    /// </summary>
     public sealed class MatchResult(
         Guid NeedId,
         Guid OfferingId,

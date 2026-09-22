@@ -2,6 +2,9 @@
 
 namespace Connecto.Application.Internal.AI
 {
+    /// <summary>
+    /// Coordinates parsing of listing content into structured result models.
+    /// </summary>
     public sealed class ListingParseService(IListingParser parser) : IListingParseService
     {
         public Task<ListingParseResult> ParseNeedAsync(

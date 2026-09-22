@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Entities
 {
+    /// <summary>
+    /// Represents a request or requirement raised by a user in the marketplace.
+    /// </summary>
     public sealed record Need
     {
         public Need() { }

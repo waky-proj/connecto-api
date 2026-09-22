@@ -6,6 +6,9 @@ namespace Connecto.Api.Controllers
 {
     [ApiController]
     [Route("api/matches")]
+    /// <summary>
+    /// Provides endpoints for viewing match previews and related match information.
+    /// </summary>
     public class MatchesController : ControllerBase
     {
         [HttpGet("preview")]

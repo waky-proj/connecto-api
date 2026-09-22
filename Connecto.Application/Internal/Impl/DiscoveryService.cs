@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Connecto.Application.Internal.Impl
 {
+    /// <summary>
+    /// Discovers matching opportunities between needs and offerings for a user.
+    /// </summary>
     public sealed class DiscoveryService(
             IListingParseService parser,
             IOfferingDbService offeringDbService,

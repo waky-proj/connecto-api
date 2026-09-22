@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Evaluates whether the requirement criteria align between a need and an offering.
+    /// </summary>
     public class RequirementCalculator : ICalculator
     {
         private const decimal RequirementsWeight = 20m;

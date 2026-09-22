@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.AI
 {
+    /// <summary>
+    /// Represents a matched opportunity between a need and an offering.
+    /// </summary>
     public sealed record OpportunityMatch
     {
         public Guid SourceId { get; init; }

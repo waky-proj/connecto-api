@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Connecto.Application.Internal.Impl
 {
+    /// <summary>
+    /// Coordinates match creation, storage, and retrieval between needs and offerings.
+    /// </summary>
     public sealed class MatchService(INeedDbService needDbService,
         IOfferingDbService offeringDbService, 
         IMatchingEngine matchingEngine) : IMatchService

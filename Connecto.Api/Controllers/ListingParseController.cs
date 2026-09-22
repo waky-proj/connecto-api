@@ -6,6 +6,9 @@ namespace Connecto.Api.Controllers
 {
     [ApiController]
     [Route("api/ai/parse")]
+    /// <summary>
+    /// Exposes endpoints for parsing listing content into structured marketplace data.
+    /// </summary>
     public sealed class ListingParseController(
             IListingParseService service) : ControllerBase
     {

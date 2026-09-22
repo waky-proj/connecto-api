@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Matching
 {
+    /// <summary>
+    /// Stores the configurable weight settings used by the matching engine.
+    /// </summary>
     public sealed record MatchingWeights
     {
         public decimal Skills { get; init; } = 35m;

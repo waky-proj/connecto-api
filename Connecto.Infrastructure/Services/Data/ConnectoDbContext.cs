@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Connecto.Infrastructure.Services.Data
 {
+    /// <summary>
+    /// Represents the EF Core database context used by the application.
+    /// </summary>
     public sealed class ConnectoDbContext : DbContext
     {
         public DbSet<User> Users => Set<User>();

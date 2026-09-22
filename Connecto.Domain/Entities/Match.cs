@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Entities
 {
+    /// <summary>
+    /// Represents a recorded match between a user need and a corresponding offering.
+    /// </summary>
     public sealed class Match
     {
         public Match() { }

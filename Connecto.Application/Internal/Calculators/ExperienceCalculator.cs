@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the experience alignment between a need and an offering.
+    /// </summary>
     public sealed class ExperienceCalculator : ICalculator
     {
         private const decimal ExperienceWeight = 5m;

@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Matching
 {
+    /// <summary>
+    /// Tracks the accumulated score and criteria values used by the matching engine.
+    /// </summary>
     public sealed record MatchScore
     {
         public decimal Skills { get; set; }

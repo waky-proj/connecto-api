@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the budget alignment between a need and an offering.
+    /// </summary>
     public class BudgetCalculator : ICalculator
     {
         private const decimal BudgetWeight = 10m;

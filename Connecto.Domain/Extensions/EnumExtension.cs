@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Extensions
 {
+    /// <summary>
+    /// Provides extension helpers for enum values used across the domain model.
+    /// </summary>
     public static class EnumExtension
     {
         public static string ToFriendlyString(this Enum value)

@@ -4,6 +4,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the skill overlap between a need and an offering.
+    /// </summary>
     public class SkillCalculator : ICalculator
     {
         private const decimal SkillsWeight = 35m;

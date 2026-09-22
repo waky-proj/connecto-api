@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Connecto.Infrastructure.Services.Data.Seed
 {
+    /// <summary>
+    /// Seeds the initial sample data used by the application during database setup.
+    /// </summary>
     public static class SeedData
     {
         public static void Seed(ModelBuilder modelBuilder)

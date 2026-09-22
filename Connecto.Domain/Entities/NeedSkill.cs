@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Entities
 {
+    /// <summary>
+    /// Represents a skill attached to a need.
+    /// </summary>
     public sealed record NeedSkill
     {
         public NeedSkill() { }

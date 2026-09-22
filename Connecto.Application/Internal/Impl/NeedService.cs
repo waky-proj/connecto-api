@@ -4,6 +4,9 @@ using Connecto.Infrastructure.Services;
 
 namespace Connecto.Application.Internal.Impl
 {
+    /// <summary>
+    /// Provides business logic for creating and managing user needs.
+    /// </summary>
     public sealed class NeedService(INeedDbService needDbService, IUserDbService userDbService) : INeedService
     {
         public async Task<Need> CreateAsync(
