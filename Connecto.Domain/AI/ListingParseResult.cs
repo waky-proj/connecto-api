@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.AI
 {
+    /// <summary>
+    /// Represents the structured result produced after parsing a marketplace listing.
+    /// </summary>
     public sealed record ListingParseResult
     {
         public required string Category { get; init; }

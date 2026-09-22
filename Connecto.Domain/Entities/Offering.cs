@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.Entities
 {
+    /// <summary>
+    /// Represents a service or capability offered by a user.
+    /// </summary>
     public sealed record Offering
     {
         public Offering() { }

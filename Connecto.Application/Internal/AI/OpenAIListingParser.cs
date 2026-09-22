@@ -19,6 +19,9 @@ namespace Connecto.Application.Internal.AI
     ///     8. Do not make decisions about whether the listing is a good match.
     ///     9. Return only the requested structured output.
     /// </summary>
+    /// <summary>
+    /// Parses unstructured listing text by extracting structured marketplace information.
+    /// </summary>
     public class OpenAIListingParser : IListingParser
     {
         /// <summary>

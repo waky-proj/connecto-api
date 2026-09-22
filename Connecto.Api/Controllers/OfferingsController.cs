@@ -7,6 +7,9 @@ namespace Connecto.Api.Controllers
 {
     [Route("api/offerings")]
     [ApiController]
+    /// <summary>
+    /// Handles creation, retrieval, and matching flows for service offerings.
+    /// </summary>
     public class OfferingsController(
         IOfferingService offeringService) : ControllerBase
     {

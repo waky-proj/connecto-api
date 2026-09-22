@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the reputation signal used during matching decisions.
+    /// </summary>
     public class ReputationCalculator : ICalculator
     {
         private const decimal ReputationWeight = 5m;

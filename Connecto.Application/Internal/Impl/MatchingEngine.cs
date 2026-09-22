@@ -4,6 +4,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Impl
 {
+    /// <summary>
+    /// Applies the configured calculators to score a need and offering pair.
+    /// </summary>
     public sealed class MatchingEngine(IEnumerable<ICalculator> calculators) : IMatchingEngine
     {
         //private readonly MatchingWeights _weights;

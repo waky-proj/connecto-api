@@ -4,6 +4,9 @@ using Connecto.Infrastructure.Services;
 
 namespace Connecto.Application.Internal.Impl
 {
+    /// <summary>
+    /// Provides business logic for creating and managing offerings.
+    /// </summary>
     public sealed class OfferingService(IOfferingDbService offeringDbService, 
         IUserDbService userDbService) : IOfferingService
     {

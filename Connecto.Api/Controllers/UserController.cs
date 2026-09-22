@@ -4,6 +4,9 @@ namespace Connecto.Api.Controllers
 {
     [Route("api/user")]
     [ApiController]
+    /// <summary>
+    /// Handles user profile registration and account management endpoints.
+    /// </summary>
     public class UserController : ControllerBase
     {
         [HttpPost("create")]

@@ -9,6 +9,9 @@
     /// <param name="email"></param>
     /// <param name="address"></param>
     /// <param name="bio"></param>
+    /// <summary>
+    /// Represents a user profile within the Connecto platform.
+    /// </summary>
     public sealed record User
     {
         public User() { }

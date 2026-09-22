@@ -1,5 +1,8 @@
 ﻿namespace Connecto.Domain.AI
 {
+    /// <summary>
+    /// Represents the confidence score for a parsed listing attribute or result.
+    /// </summary>
     public sealed record ListingParseConfidence
     {
         public decimal Category { get; init; }

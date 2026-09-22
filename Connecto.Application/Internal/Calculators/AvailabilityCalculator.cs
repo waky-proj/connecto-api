@@ -3,6 +3,9 @@ using Connecto.Domain.Matching;
 
 namespace Connecto.Application.Internal.Calculators
 {
+    /// <summary>
+    /// Calculates the availability fit between a need and an offering.
+    /// </summary>
     public class AvailabilityCalculator : ICalculator
     {
         private const decimal AvailabilityWeight = 15m;
