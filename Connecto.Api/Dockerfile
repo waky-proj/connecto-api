@@ -1,25 +1,8 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM alpine:3.22
 
-WORKDIR /src
-
-COPY . .
-
-RUN dotnet restore Connecto.Api.slnx
-
-RUN dotnet publish \
-    Connecto.Api.csproj \
-    -c Release \
-    -o /app/publish \
-    --no-restore
-
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+RUN apk update && \
+    apk add --no-cache go=$(cat .go-version)
 
 WORKDIR /app
-
-COPY --from=build /app/publish .
-
-EXPOSE 8080
-
-ENV ASPNETCORE_HTTP_PORTS=8080
-
-ENTRYPOINT ["dotnet", "Connecto.Api.dll"]
+COPY . .
+RUN go build ./...
