@@ -61,32 +61,33 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # - name: Build Docker image
-        # env:
-          # REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # IMAGE_TAG: ${{ github.sha }}
-        # run: |
-          # docker build \
-            # -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            # .
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -f Connecto-Api/Dockerfile \
+            -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            .
 
-      # - name: Push Docker image
-        # env:
-          # REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # IMAGE_TAG: ${{ github.sha }}
-        # run: |
-          # docker push \
-            # $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push \
+            $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-     # - name: Deploy to ECS
-        # run: |
-          # aws ecs update-service \
-            # --cluster $ECS_CLUSTER \
-            # --service $ECS_SERVICE \
-            # --force-new-deployment
+     - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment
 
-      # - name: Wait for deployment
-        # run: |
-          # aws ecs wait services-stable \
-            # --cluster $ECS_CLUSTER \
-            # --services $ECS_SERVICE
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE
