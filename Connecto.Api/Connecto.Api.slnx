@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/docs/" />
+  <Project Path="../Connecto.Application/Connecto.Application.csproj" Id="10424bd6-386a-48ea-b677-77b9a2cbafd9" />
+  <Project Path="../Connecto.Domain/Connecto.Domain.csproj" />
+  <Project Path="../Connecto.Infrastructure/Connecto.Infrastructure.csproj" />
+  <Project Path="../Connecto.Tests.Unit/Connecto.Tests.Unit.csproj" Id="0ff9dbbb-a7f5-4c3a-a2bb-a2d332e4ace4" />
+  <Project Path="Connecto.Api.csproj" />
+</Solution>

@@ -1,0 +1,18 @@
+[
+  {
+    "input": "I need someone to build a React website for my cleaning company",
+    "expectedCategory": "Web Development",
+    "expectedSkills": [
+      "React",
+      "Web Development"
+    ]
+  },
+  {
+    "input": "Looking for a photographer for our sports event",
+    "expectedCategory": "Photography",
+    "expectedSkills": [
+      "Photography",
+      "Sports Photography"
+    ]
+  }
+]
