@@ -14,7 +14,7 @@ env:
   AWS_REGION: ap-southeast-2
   ECR_REPOSITORY: connecto-api
   ECS_CLUSTER: connecto
-  ECS_SERVICE: connecto-api-r82jfz-service-3v4q9xcd
+  ECS_SERVICE: connecto-api-tcek4m-service-v490e2cr
 jobs:
   deploy:
     name: Build, Push and Deploy
