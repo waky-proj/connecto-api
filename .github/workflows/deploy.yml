@@ -4,17 +4,7 @@ on:
   push:
     branches:
       - main
-      - "**"
 
-  workflow_dispatch:
-      inputs:
-        environment:
-          description: "Deployment environment"
-          required: true
-          type: choice
-          options:
-            - production
-  
 permissions:
   id-token: write
   contents: read
@@ -29,6 +19,8 @@ jobs:
   deploy:
     name: Build, Push and Deploy
     runs-on: ubuntu-latest
+
+    environment: production
 
     steps:
       - name: Checkout
@@ -47,12 +39,9 @@ jobs:
 
       - name: Test
         run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build
-        
-      - name: Debug OIDC claims
-        uses: github/actions-oidc-debugger@main
-        
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -67,27 +56,28 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build \
-            -f Connecto-Api/Dockerfile \
-            -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            .
+            -f Connecto.Api/Dockerfile \
+            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            Connecto.Api
 
       - name: Push Docker image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker push \
-            $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-     - name: Deploy to ECS
+      - name: Deploy to ECS
+        env:
+          IMAGE_URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
           aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
             --force-new-deployment
 
       - name: Wait for deployment
         run: |
           aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
