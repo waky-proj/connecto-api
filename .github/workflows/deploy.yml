@@ -11,7 +11,7 @@ permissions:
 
 env:
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: 879268673273.dkr.ecr.ap-southeast-2.amazonaws.com/connecto-api
+  ECR_REPOSITORY: connecto-api
   ECS_CLUSTER: connecto
   ECS_SERVICE: connecto-api
 
@@ -40,6 +40,25 @@ jobs:
       - name: Test
         run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build
 
+      - name: Check AWS role configuration
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::AWS_DEPLOY_ROLE_ARN is empty or unavailable"
+            exit 1
+          fi
+
+          case "$AWS_ROLE_ARN" in
+            arn:aws:iam::*:role/*)
+              echo "AWS_DEPLOY_ROLE_ARN has a valid ARN format"
+              ;;
+            *)
+              echo "::error::AWS_DEPLOY_ROLE_ARN is not a valid IAM role ARN"
+              exit 1
+              ;;
+          esac
+      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
