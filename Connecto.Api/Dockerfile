@@ -12,7 +12,7 @@ COPY Connecto.Api/Connecto.Api.csproj Connecto.Api/
 COPY Connecto.Application/Connecto.Application.csproj Connecto.Application/
 COPY Connecto.Domain/Connecto.Domain.csproj Connecto.Domain/
 COPY Connecto.Infrastructure/Connecto.Infrastructure.csproj Connecto.Infrastructure/
-COPY Connecto.Tests/Connecto.Tests.csproj Connecto.Tests/
+COPY Connecto.Tests.Unit/Connecto.Tests.Unit.csproj Connecto.Tests.Unit/
 
 # Restore after all project references are present.
 RUN dotnet restore Connecto.Api/Connecto.Api.csproj --force
@@ -22,7 +22,7 @@ COPY Connecto.Api/ Connecto.Api/
 COPY Connecto.Application/ Connecto.Application/
 COPY Connecto.Domain/ Connecto.Domain/
 COPY Connecto.Infrastructure/ Connecto.Infrastructure/
-COPY Connecto.Tests/ Connecto.Tests/
+COPY Connecto.Tests.Unit/ Connecto.Tests.Unit/
 
 WORKDIR /src/Connecto.Api
 
