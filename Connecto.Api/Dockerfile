@@ -49,3 +49,6 @@ ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "Connecto.Api.dll"]
+
+EXPOSE 8080
+ENV ASPNETCORE_HTTP_PORTS=8080
