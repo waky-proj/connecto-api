@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  workflow_call:
+    outputs:
+      image_uri:
+        description: "Docker image URI pushed to ECR"
+        value: ${{ jobs.build.outputs.image_uri }}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: connecto-api
+
+jobs:
+  build:
+    name: Build, Test and Push
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_uri: ${{ steps.image.outputs.image_uri }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore Connecto.Api/Connecto.Api.slnx
+
+      - name: Build
+        run: dotnet build Connecto.Api/Connecto.Api.slnx  --configuration Release  --no-restore
+
+      - name: Test
+        run: dotnet test Connecto.Api/Connecto.Api.slnx  --configuration Release  --no-build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build  -f Connecto.Api/Dockerfile  -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"  .
+
+      - name: Push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Set image output
+        id: image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "image_uri=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"

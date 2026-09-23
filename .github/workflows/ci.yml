@@ -1,4 +1,4 @@
-name: CI
+name: CI Build And Test
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
       inputs:
         environment:
-          description: "Deployment environment"
+          description: "CI Build"
           required: true
           type: choice
           options:

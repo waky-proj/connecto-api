@@ -1,83 +1,45 @@
-name: Build and Deploy
+name: Deploy
 
 on:
   push:
     branches:
       - main
 
+  workflow_dispatch:
+    inputs:
+      run_migration:
+        description: "Run EF Core database migration"
+        required: true
+        default: false
+        type: boolean
+
 permissions:
   id-token: write
   contents: read
 
-env:
-  AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: connecto-api
-  ECS_CLUSTER: connecto
-  ECS_SERVICE: connecto-api-tcek4m-service-v490e2cr
-  
 jobs:
-  deploy:
-    name: Build, Push and Deploy
-    runs-on: ubuntu-latest
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
 
-    environment: production
+  database-migration:
+    needs: build
+    if: ${{ inputs.run_migration == true }}
+    uses: ./.github/workflows/database-migration.yml
+    with:
+      image_uri: ${{ needs.build.outputs.image_uri }}
+    secrets: inherit
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Restore
-        run: dotnet restore Connecto.Api/Connecto.Api.slnx
-
-      - name: Build
-        run: dotnet build Connecto.Api/Connecto.Api.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build
-      
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build Docker image
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build \
-            -f Connecto.Api/Dockerfile \
-            -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            .
-
-      - name: Push Docker image
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Deploy to ECS
-        env:
-          IMAGE_URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-        run: |
-          aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "$ECS_SERVICE" \
-            --force-new-deployment
-
-      - name: Wait for deployment
-        run: |
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE"
+  deployment:
+    needs:
+      - build
+      - database-migration
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.database-migration.result == 'success' ||
+       needs.database-migration.result == 'skipped')
+    uses: ./.github/workflows/deployment.yml
+    with:
+      image_uri: ${{ needs.build.outputs.image_uri }}
+    secrets: inherit
