@@ -114,3 +114,7 @@ variable "rds_username" {
   type    = string
   default = "connectoadmin"
 }
+
+variable "migration_subnet_ids" {
+  type = list(string)
+}

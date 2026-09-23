@@ -58,11 +58,25 @@ resource "aws_security_group" "rds" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "SQL Server from ECS"
-    from_port       = 1433
-    to_port         = 1433
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs.id]
+    description = "SQL Server from ECS API"
+    from_port   = 1433
+    to_port     = 1433
+    protocol    = "tcp"
+
+    security_groups = [
+      aws_security_group.ecs.id
+    ]
+  }
+
+  ingress {
+    description = "SQL Server from migration task"
+    from_port   = 1433
+    to_port     = 1433
+    protocol    = "tcp"
+
+    security_groups = [
+      aws_security_group.migration.id
+    ]
   }
 
   egress {
@@ -75,6 +89,25 @@ resource "aws_security_group" "rds" {
 
   tags = {
     Name        = "${var.project_name}-rds-sg"
+    Environment = var.environment
+  }
+}
+
+resource "aws_security_group" "migration" {
+  name        = "${var.project_name}-migration-sg"
+  description = "Security group for Connecto database migration task"
+  vpc_id      = var.vpc_id
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${var.project_name}-migration-sg"
     Environment = var.environment
   }
 }
