@@ -21,3 +21,4 @@
 /terraform/terraform.tfstate.backup
 /terraform/terraform.tfstate
 /Connecto.Database/obj
+/Connecto.Database/bin/Debug/net10.0
