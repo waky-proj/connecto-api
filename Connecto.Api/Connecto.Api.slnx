@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/data/">
+    <Project Path="../Connecto.Database/Connecto.Database.csproj" Id="4fbb39c6-544a-4629-b53a-44c2a58c1a77" />
+  </Folder>
   <Folder Name="/docs/" />
   <Project Path="../Connecto.Application/Connecto.Application.csproj" Id="10424bd6-386a-48ea-b677-77b9a2cbafd9" />
   <Project Path="../Connecto.Domain/Connecto.Domain.csproj" />

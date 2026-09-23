@@ -14,3 +14,11 @@
 /Connecto.Tests.Unit/bin/Debug/net10.0
 /Connecto.Tests.Unit/obj
 /.vs/CopilotSnapshots/34DC08AFC2A1A347B900AC1D19663842
+/terraform/terraform.tfvars
+/terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/6.66.0/windows_386
+*.hcl
+/terraform/terraform.tfstate.1790140174.backup
+/terraform/terraform.tfstate.backup
+/terraform/terraform.tfstate
+/Connecto.Database/obj
+/Connecto.Database/bin/Debug/net10.0

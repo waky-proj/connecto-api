@@ -1,6 +1,6 @@
 @Connecto.Api_HostAddress = http://localhost:5247
 
-GET {{Connecto.Api_HostAddress}}/weatherforecast/
+GET {{Connecto.Api_HostAddress}}
 Accept: application/json
 
 ###

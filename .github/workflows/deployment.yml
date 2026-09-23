@@ -1,0 +1,51 @@
+name: Deployment
+
+on:
+  workflow_call:
+    inputs:
+      image_uri:
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECS_CLUSTER: connecto
+  ECS_SERVICE: connecto-api-tcek4m-service-v490e2cr
+  ECS_TASK_DEFINITION: connecto-task-definition-tcek4m
+  CONTAINER_NAME: Main
+
+jobs:
+  deploy:
+    name: Deploy API to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition  --task-definition "$ECS_TASK_DEFINITION"  --query taskDefinition  --output json > task-definition.json
+
+      - name: Render task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ inputs.image_uri }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

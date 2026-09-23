@@ -6,7 +6,6 @@ using Connecto.Domain.AI;
 using Connecto.Infrastructure.Services;
 using Connecto.Infrastructure.Services.Data;
 using Connecto.Infrastructure.Services.Impl;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,8 +47,8 @@ builder.Services.AddScoped<INeedDbService, NeedDbService>();
 builder.Services.AddScoped<IOfferingDbService, OfferingDbService>();
 builder.Services.AddScoped<IUserDbService, UserDbService>();
 
-builder.Services.AddDbContext<ConnectoDbContext>(options => 
-    options.UseSqlServer("Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=ConnectoDB;Integrated Security=True;Connect Timeout=30;Encrypt=True;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False;Command Timeout=30"));//builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<ConnectoDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -57,7 +56,6 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-
     app.UseSwagger();
     app.UseSwaggerUI();
 }
