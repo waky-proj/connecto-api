@@ -25,7 +25,7 @@ jobs:
   database-migration:
     needs: build
     if: ${{ inputs.run_migration == true }}
-    uses: ./.github/workflows/database-migration.yml
+    uses: ./.github/workflows/db-migration.yml
     with:
       image_uri: ${{ needs.build.outputs.image_uri }}
     secrets: inherit
