@@ -22,6 +22,8 @@ jobs:
   deploy:
     name: Deploy API to ECS
     runs-on: ubuntu-latest
+    
+    environment: production
 
     environment: production
 
