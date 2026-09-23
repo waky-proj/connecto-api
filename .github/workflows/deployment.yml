@@ -25,6 +25,8 @@ jobs:
     
     environment: production
 
+    environment: production
+
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -50,4 +52,3 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true

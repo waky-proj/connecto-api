@@ -20,6 +20,8 @@ jobs:
     name: Build, Test and Push
     runs-on: ubuntu-latest
 
+    environment: production
+
     outputs:
       image_uri: ${{ steps.image.outputs.image_uri }}
 
