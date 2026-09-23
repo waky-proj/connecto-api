@@ -39,10 +39,20 @@ variable "ecs_service_name" {
   default     = "connecto-api"
 }
 
+variable "ecs_subnet_ids" {
+  type = list(string)
+}
+
 variable "container_name" {
   description = "Name of the application container."
   type        = string
   default     = "connecto-api"
+}
+
+variable "alb_name" {
+  description = "Application Load Balancer name."
+  type        = string
+  default     = "connecto-api-alb"
 }
 
 variable "alb_listener_port" {
@@ -50,16 +60,14 @@ variable "alb_listener_port" {
   default = 80
 }
 
+variable "alb_subnet_ids" {
+  type = list(string)
+}
+
 variable "container_port" {
   description = "Port exposed by the ASP.NET Core container."
   type        = number
   default     = 8080
-}
-
-variable "alb_name" {
-  description = "Application Load Balancer name."
-  type        = string
-  default     = "connecto-api-alb"
 }
 
 variable "target_group_name" {

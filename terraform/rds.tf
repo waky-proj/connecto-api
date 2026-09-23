@@ -20,7 +20,6 @@ resource "aws_db_instance" "connecto" {
   max_allocated_storage = 50
   storage_type          = "gp3"
 
-  db_name  = "Connecto"
   username = var.rds_username
 
   manage_master_user_password = true
