@@ -1,32 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Connecto.Api.Authentication;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Connecto.Api.Controllers
+namespace Connecto.Api.Controllers;
+
+[Route("api/users")]
+[ApiController]
+public class UserController(ICurrentUser currentUser) : ControllerBase
 {
-    [Route("api/user")]
-    [ApiController]
-    /// <summary>
-    /// Handles user profile registration and account management endpoints.
-    /// </summary>
-    public class UserController : ControllerBase
+    [HttpGet("me")]
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-        [HttpPost("create")]
-        public async Task<IActionResult> Post()
-        {
-            return Ok();
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Get()
-        {
-
-            return Ok();
-        }
-
-        [HttpPost("update")]
-        public async Task<IActionResult> Put()
-        {
-
-            return Ok();
-        }
+        var user = await currentUser.GetAsync(cancellationToken);
+        return Ok(new { user.Id, user.FirstName, user.MiddleName, user.LastName, user.Email,
+            user.Address, user.City, user.Country, user.Bio, user.VerificationStatus, user.ReputationScore });
     }
 }

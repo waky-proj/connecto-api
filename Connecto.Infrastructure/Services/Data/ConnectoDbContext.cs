@@ -33,6 +33,7 @@ namespace Connecto.Infrastructure.Services.Data
             {
                 entity.HasKey(x => x.Id);
 
+
                 entity.Property(x => x.Skill)
                     .HasMaxLength(100)
                     .IsRequired();
@@ -69,6 +70,8 @@ namespace Connecto.Infrastructure.Services.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.AuthSubjectId).HasMaxLength(128);
+                entity.HasIndex(x => x.AuthSubjectId).IsUnique().HasFilter("[AuthSubjectId] IS NOT NULL");
 
                 entity.Property(x => x.FirstName)
                     .HasMaxLength(200)

@@ -27,6 +27,7 @@ namespace Connecto.Application.Internal.Impl
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
+                Skills = [],
                 Title = request.Title.Trim(),
                 Description = request.Description.Trim(),
                 Category = request.Category.Trim(),

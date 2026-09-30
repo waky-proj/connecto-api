@@ -1,6 +1,9 @@
 ﻿using Connecto.Application.Internal;
 using Connecto.Domain.Requests;
 using Microsoft.AspNetCore.Mvc;
+using Connecto.Api.Authentication;
+using Connecto.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Connecto.Api.Controllers
 {
@@ -9,17 +12,17 @@ namespace Connecto.Api.Controllers
     /// <summary>
     /// Handles creation, retrieval, and matching actions for user needs.
     /// </summary>
-    public class NeedsController(IMatchService matchService, INeedService needService) : ControllerBase
+    public class NeedsController(IMatchService matchService, INeedService needService,
+        ICurrentUser currentUser, INeedDbService needs, IAuthorizationService authorization) : ControllerBase
     {
 
         [HttpPost]
         public async Task<IActionResult> Post(
-            [FromHeader(Name = "X-User-Id")] Guid userId,
             CreateNeedRequest request,
             CancellationToken cancellationToken)
         {
             var need = await needService.CreateAsync(
-                userId,
+                (await currentUser.GetAsync(cancellationToken)).Id,
                 request,
                 cancellationToken);
 
@@ -40,6 +43,9 @@ namespace Connecto.Api.Controllers
             Guid needId,
             CancellationToken cancellationToken)
         {
+            var need = await needs.GetById(needId);
+            if (need is null) return NotFound();
+            if (!(await authorization.AuthorizeAsync(User, need, "Owner")).Succeeded) return Forbid();
             var matches = await matchService.FindMatchesAsync(
                 needId,
                 cancellationToken);

@@ -34,6 +34,9 @@
         /// </summary>
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        // Nullable for existing/seed profiles. Never link existing users by email.
+        public string? AuthSubjectId { get; set; }
+
         /// <summary>
         ///     first name
         /// </summary>

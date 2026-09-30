@@ -7,8 +7,10 @@ using Connecto.Infrastructure.Services;
 using Connecto.Infrastructure.Services.Data;
 using Connecto.Infrastructure.Services.Impl;
 using Microsoft.EntityFrameworkCore;
+using Connecto.Api.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCognitoAuthentication(builder.Configuration);
 
 // Add services to the container.
 
@@ -62,6 +64,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -69,6 +72,8 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy"
-}));
+})).AllowAnonymous();
 
 app.Run();
+
+public partial class Program;

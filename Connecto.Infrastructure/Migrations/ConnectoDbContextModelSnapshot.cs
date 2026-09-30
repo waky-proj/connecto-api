@@ -327,6 +327,10 @@ namespace Connecto.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<string>("AuthSubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<string>("Bio")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -368,6 +372,10 @@ namespace Connecto.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthSubjectId")
+                        .IsUnique()
+                        .HasFilter("[AuthSubjectId] IS NOT NULL");
 
                     b.ToTable("Users");
 

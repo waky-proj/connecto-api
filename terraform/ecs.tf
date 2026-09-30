@@ -24,7 +24,7 @@ resource "aws_ecs_task_definition" "migration" {
 
       secrets = [
         {
-          name      = "ConnectionStrings__Default"
+          name      = "ConnectionStrings__DefaultConnection"
           valueFrom = aws_db_instance.connecto.master_user_secret[0].secret_arn
         }
       ]
