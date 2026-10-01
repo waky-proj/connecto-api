@@ -24,6 +24,38 @@ namespace Connecto.Tests.Unit.Authentication;
 
 public class AuthenticationTests
 {
+    [Theory]
+    [InlineData("")]
+    [InlineData("configured-but-unimplemented")]
+    public async Task Unavailable_parsing_does_not_block_structured_marketplace(string key)
+    {
+        using var factory = new ApiFactory(key);
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health")).StatusCode);
+        foreach (var route in new[] { "/api/ai/parse/need", "/api/ai/parse/offering" })
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(route, new { title = "Need", description = "Help" })).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        foreach (var route in new[] { "/api/ai/parse/need", "/api/ai/parse/offering" })
+        {
+            var response = await client.PostAsJsonAsync(route, new { title = "Need", description = "Help" });
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
+            var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
+            Assert.Equal("Listing parsing unavailable", problem!.Title);
+            Assert.Contains("manually", problem.Detail!);
+            Assert.DoesNotContain(key.Length > 0 ? key : "design", await response.Content.ReadAsStringAsync());
+        }
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/users/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PatchAsJsonAsync("/api/users/me", new { city = "Auckland" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/needs",
+            new CreateNeedRequest("Need", "Help", "Technical", ["Programming"], null, null, null, null))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/offerings",
+            new CreateOfferingRequest("Offering", "Help", "Technical", ["Programming"], null, null, "Auckland", false, null, null, 0))).StatusCode);
+        var activity = await client.GetFromJsonAsync<Activity>("/api/users/me/activity");
+        Assert.Single(activity!.Needs);
+        Assert.Single(activity.Offerings);
+    }
+
     [Fact]
     public async Task Anonymous_requests_are_rejected_but_health_is_public()
     {
@@ -91,6 +123,57 @@ public class AuthenticationTests
     }
 
     private record Profile(Guid Id);
+    [Fact]
+    public async Task Profile_patch_is_persistent_and_cannot_assign_identity_or_reputation()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var profile = await client.GetFromJsonAsync<Profile>("/api/users/me");
+        var response = await client.PatchAsJsonAsync("/api/users/me", new {
+            firstName = " Alice ", city = " Auckland ", bio = "Hello", id = Guid.NewGuid(),
+            authSubjectId = "subject-2", reputationScore = 100, email = "spoof@example.com" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var user = await scope.ServiceProvider.GetRequiredService<ConnectoDbContext>().Users.SingleAsync(x => x.Id == profile!.Id);
+            Assert.Equal("Alice", user.FirstName);
+            Assert.Equal("Auckland", user.City);
+            Assert.Equal("subject-1", user.AuthSubjectId);
+            Assert.Equal("", user.Email);
+            Assert.Equal(0, user.ReputationScore);
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PatchAsJsonAsync("/api/users/me", new { bio = new string('x', 2001) })).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        var other = await client.GetFromJsonAsync<Profile>("/api/users/me");
+        Assert.NotEqual(profile!.Id, other!.Id);
+    }
+
+    [Fact]
+    public async Task Activity_is_paginated_and_never_returns_another_members_listings()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var response = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest("Private A", "Description", "Technical", ["Programming"], 1, 10, "Auckland", null));
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var own = await client.GetFromJsonAsync<Activity>("/api/users/me/activity?pageSize=1");
+        Assert.Equal(1, own!.NeedTotal);
+        Assert.Single(own.Needs);
+        var next = await client.GetFromJsonAsync<Activity>("/api/users/me/activity?pageSize=1&page=2");
+        Assert.Empty(next!.Needs);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/users/me/activity?pageSize=101")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/users/me/activity?page=0")).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        var other = await client.GetFromJsonAsync<Activity>("/api/users/me/activity");
+        Assert.Empty(other!.Needs);
+        Assert.Empty(other.Offerings);
+        client.DefaultRequestHeaders.Authorization = null;
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/users/me/activity")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PatchAsJsonAsync("/api/users/me", new { city = "Spoof" })).StatusCode);
+    }
+
+    private record Activity(int NeedTotal, Listing[] Needs, Listing[] Offerings);
     private record Listing(Guid Id);
 
     [Fact]
@@ -122,7 +205,7 @@ public class AuthenticationTests
         public Task<User> GetAsync(CancellationToken cancellationToken = default) => Task.FromResult(user);
     }
 
-    private sealed class ApiFactory : WebApplicationFactory<Program>
+    private sealed class ApiFactory(string apiKey = "") : WebApplicationFactory<Program>
     {
         private readonly RSA rsa = RSA.Create(2048);
         private readonly string database = Guid.NewGuid().ToString();
@@ -130,7 +213,7 @@ public class AuthenticationTests
         {
             builder.UseSetting("Cognito:Issuer", "https://test-issuer.example");
             builder.UseSetting("Cognito:Audience", "test-client");
-            builder.UseSetting("OpenAI:ApiKey", "test-key");
+            builder.UseSetting("OpenAI:ApiKey", apiKey);
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<ConnectoDbContext>>();

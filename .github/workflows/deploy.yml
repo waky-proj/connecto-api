@@ -10,12 +10,16 @@ on:
       run_migration:
         description: "Run EF Core database migration"
         required: true
-        default: false
+        default: true
         type: boolean
 
 permissions:
   id-token: write
   contents: read
+
+concurrency:
+  group: connecto-production-deployment
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -24,7 +28,7 @@ jobs:
 
   database-migration:
     needs: build
-    if: ${{ inputs.run_migration == true }}
+    if: ${{ github.event_name == 'push' || inputs.run_migration == true }}
     uses: ./.github/workflows/db-migration.yml
     with:
       image_uri: ${{ needs.build.outputs.image_uri }}

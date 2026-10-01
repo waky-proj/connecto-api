@@ -22,11 +22,7 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddOptions<OpenAIOptions>()
-    .Bind(builder.Configuration.GetSection("OpenAI"))
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(options.ApiKey),
-        "OpenAI API key is required.")
-    .ValidateOnStart();
+    .Bind(builder.Configuration.GetSection("OpenAI"));
 
 builder.Services.AddTransient<IMatchingEngine, MatchingEngine>();
 builder.Services.AddScoped<INeedService, NeedService>();
@@ -50,7 +46,7 @@ builder.Services.AddScoped<IOfferingDbService, OfferingDbService>();
 builder.Services.AddScoped<IUserDbService, UserDbService>();
 
 builder.Services.AddDbContext<ConnectoDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(DatabaseConfiguration.GetConnectionString(builder.Configuration)));
 
 var app = builder.Build();
 

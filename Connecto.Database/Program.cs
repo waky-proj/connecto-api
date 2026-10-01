@@ -5,7 +5,8 @@ using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddDbContext<ConnectoDbContext>();
+builder.Services.AddDbContext<ConnectoDbContext>(options =>
+    options.UseSqlServer(DatabaseConfiguration.GetConnectionString(builder.Configuration)));
 
 using var host = builder.Build();
 

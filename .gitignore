@@ -23,3 +23,7 @@
 /Connecto.Database/obj
 /Connecto.Database/bin/Debug/net10.0
 /.vs
+
+# Build outputs across configurations
+**/bin/
+**/obj/

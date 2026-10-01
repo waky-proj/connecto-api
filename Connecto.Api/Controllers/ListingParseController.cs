@@ -17,12 +17,15 @@ namespace Connecto.Api.Controllers
             ParseListingRequest request,
             CancellationToken cancellationToken)
         {
-            var result = await service.ParseNeedAsync(
-                request.Title,
-                request.Description,
-                cancellationToken);
-
-            return Ok(result);
+            try
+            {
+                var result = await service.ParseNeedAsync(request.Title, request.Description, cancellationToken);
+                return Ok(result);
+            }
+            catch (ListingParsingUnavailableException)
+            {
+                return ParsingUnavailable();
+            }
         }
 
         [HttpPost("offering")]
@@ -30,12 +33,20 @@ namespace Connecto.Api.Controllers
             ParseListingRequest request,
             CancellationToken cancellationToken)
         {
-            var result = await service.ParseOfferingAsync(
-                request.Title,
-                request.Description,
-                cancellationToken);
-
-            return Ok(result);
+            try
+            {
+                var result = await service.ParseOfferingAsync(request.Title, request.Description, cancellationToken);
+                return Ok(result);
+            }
+            catch (ListingParsingUnavailableException)
+            {
+                return ParsingUnavailable();
+            }
         }
+
+        private ObjectResult ParsingUnavailable() => Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Listing parsing unavailable",
+            detail: "AI listing parsing is not available. Enter the listing fields manually to continue.");
     }
 }

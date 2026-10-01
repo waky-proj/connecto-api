@@ -118,3 +118,9 @@ variable "rds_username" {
 variable "migration_subnet_ids" {
   type = list(string)
 }
+
+variable "database_name" {
+  description = "Application database created by EF migrations (not the RDS instance identifier)."
+  type        = string
+  default     = "Connecto"
+}
