@@ -11,24 +11,19 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  AWS_REGION: ap-southeast-2
-  ECS_CLUSTER: connecto
-  MIGRATION_TASK_DEFINITION: connecto-migration
-
-  ECS_SUBNET_1: subnet-03fd731af61c75191
-  ECS_SUBNET_2: subnet-052e606e7862c3bf9
-  ECS_SUBNET_3: subnet-02b3199deca27b328
-
-  ECS_SECURITY_GROUP: sg-0598b028212e171a7
-
 jobs:
   migrate:
     name: Run EF Core Migrations
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
     environment: production
-
+    env:
+      AWS_REGION: ap-southeast-2
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'connecto' }}
+      MIGRATION_TASK_DEFINITION: ${{ vars.MIGRATION_TASK_DEFINITION || 'connecto-migration' }}
+      MIGRATION_SUBNET_IDS: ${{ vars.MIGRATION_SUBNET_IDS }}
+      MIGRATION_SECURITY_GROUP: ${{ vars.MIGRATION_SECURITY_GROUP }}
+      IMAGE_URI: ${{ inputs.image_uri }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -36,26 +31,36 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Run database migration
+      - name: Register migration image and run task
+        shell: bash
         run: |
-          set -e
-
-          TASK_ARN=$(aws ecs run-task  --cluster "$ECS_CLUSTER"  --task-definition "$MIGRATION_TASK_DEFINITION"  --launch-type FARGATE \
-            --network-configuration  "awsvpcConfiguration={subnets=[$ECS_SUBNET_1,$ECS_SUBNET_2,$ECS_SUBNET_3],securityGroups=[$ECS_SECURITY_GROUP],assignPublicIp=DISABLED}" \
-            --query 'tasks[0].taskArn'  --output text)
-
-          echo "Migration task started:"
-          echo "$TASK_ARN"
-
-          aws ecs wait tasks-stopped  --cluster "$ECS_CLUSTER"  --tasks "$TASK_ARN"
-
-          EXIT_CODE=$(aws ecs describe-tasks  --cluster "$ECS_CLUSTER"  --tasks "$TASK_ARN"  --query 'tasks[0].containers[0].exitCode'  --output text)
-
-          echo "Migration exit code: $EXIT_CODE"
-
-          if [ "$EXIT_CODE" != "0" ]; then
-            echo "Database migration failed."
+          set -euo pipefail
+          test -n "$MIGRATION_SUBNET_IDS"
+          test -n "$MIGRATION_SECURITY_GROUP"
+          test -n "$IMAGE_URI"
+          aws ecs describe-task-definition --task-definition "$MIGRATION_TASK_DEFINITION" --query taskDefinition > current.json
+          jq --arg image "$IMAGE_URI" '
+            del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt)
+            | if ([.containerDefinitions[] | select(.name == "migration")] | length) != 1 then error("Expected migration container") else . end
+            | (.containerDefinitions[] | select(.name == "migration") | .image) = $image
+            | (.containerDefinitions[] | select(.name == "migration") | .entryPoint) = ["dotnet", "/app/migration/Connecto.Database.dll"]
+            | (.containerDefinitions[] | select(.name == "migration") | .command) = []
+          ' current.json > migration.json
+          TASK_DEFINITION=$(aws ecs register-task-definition --cli-input-json file://migration.json --query taskDefinition.taskDefinitionArn --output text)
+          aws ecs run-task --cluster "$ECS_CLUSTER" --task-definition "$TASK_DEFINITION" --launch-type FARGATE --platform-version 1.4.0 \
+            --network-configuration "awsvpcConfiguration={subnets=[$MIGRATION_SUBNET_IDS],securityGroups=[$MIGRATION_SECURITY_GROUP],assignPublicIp=DISABLED}" > run.json
+          if ! jq -e '(.failures | length) == 0 and (.tasks | length) == 1' run.json > /dev/null; then
+            jq '.failures' run.json
             exit 1
           fi
-
-          echo "Database migration completed successfully."
+          TASK_ARN=$(jq -r '.tasks[0].taskArn' run.json)
+          echo "Migration task: $TASK_ARN"
+          if ! aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"; then
+            aws ecs stop-task --cluster "$ECS_CLUSTER" --task "$TASK_ARN" --reason 'Migration waiter timed out' > /dev/null
+            exit 1
+          fi
+          aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" > stopped.json
+          jq '{failures, tasks: [.tasks[] | {stopCode, stoppedReason, containers: [.containers[] | {name, exitCode, reason}]}]}' stopped.json
+          jq -e '(.failures | length) == 0 and (.tasks | length) == 1 and
+            ([.tasks[0].containers[] | select(.name == "migration")] | length) == 1 and
+            all(.tasks[0].containers[] | select(.name == "migration"); .exitCode == 0)' stopped.json > /dev/null

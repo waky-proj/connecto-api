@@ -1,0 +1,7 @@
+**/bin
+**/obj
+.git
+.github
+terraform
+**/.env*
+**/appsettings.Development.json

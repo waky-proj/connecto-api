@@ -1,232 +1,73 @@
-# Connecto API
+# connecto-api
 
-Connecto is a marketplace API designed to connect people who have needs with others who can offer relevant help, expertise, services, or support. The platform is centered around discovering and matching user needs with suitable offerings in a structured and scalable way.
+Existing ASP.NET Core API and modular core | 1 October 2026
 
-## Overview
+## Status and domain ownership
 
-This API supports the core workflow of the Connecto platform:
+This repository contains the .NET 10 API, application/domain projects, EF Core SQL Server persistence, migration runner, tests, Docker and AWS Terraform/deployment configuration. It remains authoritative during staged migration. New service repositories are documentation scaffolds; creation does not extract any capability.
 
-- User profile creation and management
-- Need creation and tracking
-- Offering creation and tracking
-- Match discovery and scoring
-- Listing parsing for structured marketplace data
-- Swagger/OpenAPI documentation for local development and testing
+Implemented: Cognito access-token authentication and subject-based user provisioning, self-profile retrieval/allowlisted editing, paginated own activity, Need/Offering creation and owner-authorised Need matching. Match mapping is not a persistent accepted-agreement lifecycle. Discovery/preview and Offering matches include placeholders. AI parsing is unavailable: authenticated parse routes return 503 ProblemDetails with manual-entry guidance, and structured posting starts and works without an AI key. Setting a key does not enable extraction; the vendor adapter is not implemented. Matching-weight defaults are not wired into MatchingEngine. Connections, Engagements, persistent chat, Feedback, Media, Safety cases and measurement remain future work.
 
-## Solution structure
+## Current HTTP contracts
 
-The solution is organized into the following projects:
+| Route | Behaviour |
+|---|---|
+| GET /health | Anonymous host response; not database readiness |
+| GET /api/users/me | Authenticated self profile and subject-based provisioning |
+| PATCH /api/users/me | Own firstName, lastName, city and bio only; length validation |
+| GET /api/users/me/activity | Own Needs/Offerings; page >= 1, pageSize 1–100, separate totals |
+| POST /api/needs | Member-owned Need creation |
+| POST /api/offerings | Member-owned Offering creation |
+| GET /api/needs/{needId}/matches | Owner-authorised matching |
+| GET /api/offerings/{id}/matches | Owner check then placeholder response |
+| GET /api/matches/preview | Placeholder response |
+| POST /api/discover/needs | Placeholder response |
+| POST /api/ai/parse/need or /offering | Authenticated 503 application/problem+json; manual entry remains available |
 
-- `Connecto.Api` – ASP.NET Core Web API
-- `Connecto.Application` – application services, business rules, calculators, and matching logic
-- `Connecto.Domain` – entities, requests, responses, matching models, and shared domain concepts
-- `Connecto.Infrastructure` – EF Core data access, database context, migrations, and seed data
-- `Connecto.Tests.Unit` – unit tests covering the application logic
+There is no custom password/user-create route. /users/me contains private self-profile fields; public profiles need separate DTOs. Use request/controller types for exact payloads. Payments, escrow and delivery logistics remain outside initial proposed scope.
 
-## Prerequisites
+## Structure and boundaries
 
-Before running the project locally, make sure you have:
+Connecto.Api owns transport/authentication; Connecto.Application owns use cases, matching/calculators and parsing interfaces; Connecto.Domain holds current entities/models; Connecto.Infrastructure owns EF mappings, services, migrations and seed data; Connecto.Database is the migration runner; Connecto.Tests.Unit contains tests. These are technical layers in one deployment, not microservices.
 
-- .NET 10 SDK
-- SQL Server LocalDB or another SQL Server instance
-- Visual Studio 2026 or another compatible .NET 10 development environment
+Introduce domain ownership for Members, Listings, Discovery, Connections, Engagements, Conversations, Feedback/Reputation, Media, Safety and Measurement. Only domain owners write their records. Keep Connections/Engagements together until acceptance recovery and policies are verified. Do not fabricate accepted engagements from score rows or review-derived reputation from legacy fields.
 
-## Local setup
+## Local development
 
-1. Restore NuGet packages:
+Use .NET 10 SDK and SQL Server/LocalDB. Configure Cognito:Issuer (HTTPS issuer) and Cognito:Audience (public app client ID). OpenAI configuration is optional and currently does not activate parsing; no key is needed for structured listing creation. Never commit credentials. ConnectionStrings:DefaultConnection is local fallback. Database:Server overrides it and requires Database:Name, Username and Password. Deployed connection construction enables SQL encryption and certificate validation.
 
-   ```bash
-   dotnet restore
-   ```
+From this repository:
 
-2. Confirm the development configuration:
-
-   - Review `Connecto.Api/appsettings.Development.json`
-   - Update the `ConnectionStrings:DefaultConnection` value to match your local database
-
-3. Run the API:
-
-   ```bash
-   dotnet run --project Connecto.Api/Connecto.Api.csproj
-   ```
-
-4. Open the Swagger UI in a browser:
-
-   - HTTPS: `https://localhost:7249/swagger`
-   - HTTP: `http://localhost:5247/swagger`
-
-## Configuration
-
-The application uses the standard ASP.NET Core configuration pipeline:
-
-- `appsettings.json` – base configuration
-- `appsettings.Development.json` – local development overrides
-- environment variables – production and deployment overrides
-
-The project is configured to use the `Development` environment via `launchSettings.json`, which sets:
-
-```json
-"ASPNETCORE_ENVIRONMENT": "Development"
+```powershell
+dotnet restore Connecto.Api/Connecto.Api.csproj
+dotnet build Connecto.Api/Connecto.Api.csproj
+dotnet test Connecto.Tests.Unit/Connecto.Tests.Unit.csproj
+dotnet run --project Connecto.Api/Connecto.Api.csproj --launch-profile http
 ```
 
-This ensures the local development configuration is automatically picked up during debugging.
+HTTP profile uses http://localhost:5247; HTTPS profile additionally uses https://localhost:7249. Development Swagger is /swagger. Configure/review the target database before running migration commands; migrations mutate persistent data. These commands are guidance, not checks executed by this README task.
 
-## Database
+## Contributor guidelines
 
-The project uses Entity Framework Core with SQL Server.
+Keep controllers thin and explicit DTOs at boundaries; derive identity server-side and enforce domain invariants in application/domain code. Invert current Application-to-Infrastructure dependencies incrementally. Use versioned producer-owned API/events, pinned clients and compatibility tests; avoid shared EF entities or a shared mutable business-domain library. Cutover preserves stable IDs, one authoritative writer and additive migrations.
 
-### Current database configuration
+Verify transition/concurrency, idempotency, ownership/participants/staff checks, queue replay and acceptance recovery as capabilities ship. Unknown/restricted/private data must not become fabricated fit or public projections. Document unresolved policies rather than inventing numeric durations/targets.
 
-- `ConnectoDbContext` is the primary EF Core context
-- The default database connection is configured in `ConnectionStrings:DefaultConnection`
-- Seed data is configured in `Connecto.Infrastructure/Services/Data/Seed/SeedData.cs`
+## Security and operations
 
-### Migrations
+Current JWT validation checks signature/RS256, issuer, lifetime, access token_use, client_id and subject. ID tokens or unsigned identity headers are not API credentials. Need/Offering owner policies must expand to explicit participant/staff checks for new domains. Private/internal HTTP calls require workload identity and user authority where applicable; AWS task-role IAM alone does not authorise ASP.NET endpoints.
 
-To apply migrations locally:
+Terraform's public Cognito client now allows USER_PASSWORD_AUTH and REFRESH_TOKEN_AUTH to match the frontend, retaining SRP compatibility and no client secret. AWS has not been updated; review the plan against existing state before applying. Verify real registration/login/refresh and public/downstream TLS before closing the identity gate. The declared ALB is still HTTP. Separate runtime grants from migration/master credentials; verify SQL trust, network routes, scoped secrets and actual AWS state. Keep private content/tokens out of logs and public DTOs.
 
-```bash
-dotnet ef database update --project Connecto.Infrastructure/Connecto.Infrastructure.csproj --startup-project Connecto.Api/Connecto.Api.csproj
-```
+The workspace contract check `node --test docs/domain-design/identity-contract.test.mjs` runs from the Connecto root and compares real frontend auth requests with the sibling API Terraform configuration. It is separate from app-only tests so an independent app checkout does not require the API repository. See the foundation progress file for runtime acceptance still outstanding.
 
-To create a new migration:
+AWS ECS/ECR/RDS/Cognito is the documented baseline. Gate API rollout on matching-image migration success. API tasks/services currently referenced externally need state-preserving platform migration, not blind recreation. No Terraform resources moved to connecto-platform in this task. See ../docs/continuation.md and AUTHENTICATION.md; live AWS verification remains necessary.
 
-```bash
-dotnet ef migrations add <MigrationName> --project Connecto.Infrastructure/Connecto.Infrastructure.csproj --startup-project Connecto.Api/Connecto.Api.csproj
-```
+## Supporting design and change control
 
-## Swagger / OpenAPI
+- [Domain boundaries](../docs/domain-design/business-boundaries.md)
+- [Microservices/app migration](../docs/domain-design/microservices.md)
+- [Security and repository catalogue](../docs/domain-design/microservices-validation-security-repositories.md)
+- [Document change register](../docs/document-change-register.md)
 
-Swagger is enabled in development mode so the API can be explored and tested without an external client.
-
-Open the Swagger UI to:
-
-- browse all endpoints
-- inspect request and response models
-- test API actions directly from the browser
-
-## API structure
-
-The API is organized around core domain flows:
-
-- `api/user` – user profile and account operations
-- `api/needs` – create and manage needs
-- `api/offerings` – create and manage offerings
-- `api/matches` – match previews and related information
-- `api/discover` – discovery flows
-- `api/listing-parse` – parse marketplace listing text into structured data
-
-## Matching engine
-
-The matching engine evaluates a need against an offering using weighted factors such as:
-
-- requirements match
-- skill overlap
-- location fit
-- budget alignment
-- reputation
-- experience
-- availability
-
-These factors are evaluated by dedicated calculators in `Connecto.Application/Internal/Calculators`.
-
-## Deployment
-
-The project is designed for standard ASP.NET Core hosting and can be deployed to environments such as:
-
-- Azure App Service
-- Azure Container Apps
-- IIS
-- other Windows or Linux servers hosting ASP.NET Core applications
-
-### Deployment considerations
-
-- use secure production configuration values
-- avoid checking secrets into source control
-- configure production connection strings and API keys in secure environment variables or secret stores
-- enforce HTTPS in production
-
-## Security notes
-
-- Never commit production secrets or API keys
-- Prefer environment variables, Azure Key Vault, or another secure secret store for sensitive values
-- Keep the development connection string and local-only values in `appsettings.Development.json` only
-
-## Project status
-
-This repository is currently in active development. APIs and domain behavior may evolve as the product expands.
-
-## Typical development workflow
-
-1. Start the API locally with `dotnet run`
-2. Open Swagger in the browser
-3. Use the UI to test endpoints or call them with curl/Postman
-4. Validate business logic via unit tests
-5. Apply any required EF Core migrations before sharing schema changes
-
-## Example endpoint usage
-
-### Health / quick check
-
-```bash
-curl -X GET "https://localhost:7249/swagger"
-```
-
-### Create a user
-
-```bash
-curl -X POST "https://localhost:7249/api/user/create" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Jane",
-    "middleName": "Marie",
-    "lastName": "Doe",
-    "email": "jane.doe@example.com",
-    "address": "123 Main St",
-    "city": "Auckland",
-    "country": "New Zealand",
-    "bio": "Interested in design and community support",
-    "password": "SecurePass123!"
-  }'
-```
-
-### Parse a listing
-
-```bash
-curl -X POST "https://localhost:7249/api/listing-parse" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Need a web developer",
-    "description": "I need a developer to build a landing page and improve our booking flow."
-  }'
-```
-
-## Contributor guidance
-
-- Keep controllers thin and delegate business logic to application services
-- Prefer DTOs and domain models over passing raw request objects across layers
-- Validate input at the application layer before persisting to the database
-- Keep matching rules and scoring logic in `Connecto.Application` rather than controller code
-- Use unit tests for calculators and service logic;
-
-## Monitoring and diagnostics
-
-During development, watch for:
-
-- unhandled exceptions in controllers
-- nullable warnings in application services
-- EF Core model mismatches between entities and migrations
-- environment-specific configuration issues between local and production setups
-
-## Useful commands
-
-```bash
-dotnet restore
-dotnet build
-dotnet test
-dotnet run --project Connecto.Api/Connecto.Api.csproj
-```
-
-## License
-
-This project does not currently include a project-specific license file. Review repository ownership and licensing requirements before redistribution or commercial use.
+Parent AGENTS.md requires assessment/register proposals for material scope/contracts/security/deployment changes and explicit approval before canonical Word edits. README updates do not approve unresolved policies. Confirm repository ownership/license before redistribution; this README establishes no license.

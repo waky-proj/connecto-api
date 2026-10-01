@@ -2,6 +2,9 @@
 using Connecto.Application.Internal.Impl;
 using Connecto.Domain.Requests;
 using Microsoft.AspNetCore.Mvc;
+using Connecto.Api.Authentication;
+using Connecto.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Connecto.Api.Controllers
 {
@@ -11,16 +14,16 @@ namespace Connecto.Api.Controllers
     /// Handles creation, retrieval, and matching flows for service offerings.
     /// </summary>
     public class OfferingsController(
-        IOfferingService offeringService) : ControllerBase
+        IOfferingService offeringService, ICurrentUser currentUser,
+        IOfferingDbService offerings, IAuthorizationService authorization) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> Post(
-            [FromHeader(Name = "X-User-Id")] Guid userId,
             CreateOfferingRequest request,
             CancellationToken cancellationToken)
         {
             var offering = await offeringService.CreateAsync(
-                userId,
+                (await currentUser.GetAsync(cancellationToken)).Id,
                 request,
                 cancellationToken);
 
@@ -35,10 +38,12 @@ namespace Connecto.Api.Controllers
                 });
         }
 
-        [HttpGet("/{id}/matches")]
+        [HttpGet("{id:guid}/matches")]
         public async Task<IActionResult> Get(Guid id)
         {
-
+            var offering = await offerings.GetById(id);
+            if (offering is null) return NotFound();
+            if (!(await authorization.AuthorizeAsync(User, offering, "Owner")).Succeeded) return Forbid();
             return Ok();
         }
     }

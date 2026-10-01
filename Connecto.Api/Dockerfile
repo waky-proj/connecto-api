@@ -45,9 +45,15 @@ RUN dotnet publish Connecto.Api.csproj \
     --output /app/publish \
     /p:UseAppHost=false
 
+RUN dotnet publish /src/Connecto.Database/Connecto.Database.csproj \
+    --configuration "$BUILD_CONFIGURATION" \
+    --output /app/migration \
+    /p:UseAppHost=false
+
 FROM base AS final
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=publish /app/publish .
+COPY --from=publish /app/migration ./migration
 ENTRYPOINT ["dotnet", "Connecto.Api.dll"]

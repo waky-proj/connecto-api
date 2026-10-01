@@ -34,7 +34,19 @@ jobs:
 
       - name: Download current task definition
         run: |
-          aws ecs describe-task-definition  --task-definition "$ECS_TASK_DEFINITION"  --query taskDefinition  --output json > task-definition.json
+          aws ecs describe-task-definition  --task-definition "$ECS_TASK_DEFINITION"  --query taskDefinition  --output json > downloaded-task-definition.json
+          jq '.containerDefinitions |= map(.environment = ((.environment // []) | map(select(.name != "ConnectionStrings__DefaultConnection"))) | .secrets = ((.secrets // []) | map(select(.name != "ConnectionStrings__DefaultConnection"))))' downloaded-task-definition.json > task-definition.json
+
+      - name: Check Cognito configuration
+        env:
+          COGNITO_ISSUER: ${{ vars.COGNITO_ISSUER }}
+          COGNITO_APP_CLIENT_ID: ${{ vars.COGNITO_APP_CLIENT_ID }}
+          DATABASE_SERVER: ${{ vars.DATABASE_SERVER }}
+          DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+          DATABASE_CREDENTIALS_SECRET_ARN: ${{ vars.DATABASE_CREDENTIALS_SECRET_ARN }}
+        run: |
+          test -n "$COGNITO_ISSUER" && test -n "$COGNITO_APP_CLIENT_ID"
+          test -n "$DATABASE_SERVER" && test -n "$DATABASE_NAME" && test -n "$DATABASE_CREDENTIALS_SECRET_ARN"
 
       - name: Render task definition
         id: task-def
@@ -43,6 +55,14 @@ jobs:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ inputs.image_uri }}
+          environment-variables: |
+            Cognito__Issuer=${{ vars.COGNITO_ISSUER }}
+            Cognito__Audience=${{ vars.COGNITO_APP_CLIENT_ID }}
+            Database__Server=${{ vars.DATABASE_SERVER }}
+            Database__Name=${{ vars.DATABASE_NAME }}
+          secrets: |
+            Database__Username=${{ vars.DATABASE_CREDENTIALS_SECRET_ARN }}:username::
+            Database__Password=${{ vars.DATABASE_CREDENTIALS_SECRET_ARN }}:password::
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -50,3 +70,4 @@ jobs:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

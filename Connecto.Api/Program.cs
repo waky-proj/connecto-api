@@ -7,8 +7,10 @@ using Connecto.Infrastructure.Services;
 using Connecto.Infrastructure.Services.Data;
 using Connecto.Infrastructure.Services.Impl;
 using Microsoft.EntityFrameworkCore;
+using Connecto.Api.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCognitoAuthentication(builder.Configuration);
 
 // Add services to the container.
 
@@ -20,11 +22,7 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddOptions<OpenAIOptions>()
-    .Bind(builder.Configuration.GetSection("OpenAI"))
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(options.ApiKey),
-        "OpenAI API key is required.")
-    .ValidateOnStart();
+    .Bind(builder.Configuration.GetSection("OpenAI"));
 
 builder.Services.AddTransient<IMatchingEngine, MatchingEngine>();
 builder.Services.AddScoped<INeedService, NeedService>();
@@ -48,7 +46,7 @@ builder.Services.AddScoped<IOfferingDbService, OfferingDbService>();
 builder.Services.AddScoped<IUserDbService, UserDbService>();
 
 builder.Services.AddDbContext<ConnectoDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(DatabaseConfiguration.GetConnectionString(builder.Configuration)));
 
 var app = builder.Build();
 
@@ -62,6 +60,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -69,6 +68,8 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy"
-}));
+})).AllowAnonymous();
 
 app.Run();
+
+public partial class Program;

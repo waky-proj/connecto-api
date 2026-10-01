@@ -26,12 +26,13 @@ namespace Connecto.Application.Internal.Impl
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
+                Skills = [],
                 Title = request.Title.Trim(),
                 Description = request.Description.Trim(),
                 Category = request.Category.Trim(),
                 BudgetMin = request.BudgetMin,
                 BudgetMax = request.BudgetMax,
-                Location = request.Location.Trim(),
+                Location = request.Location?.Trim() ?? "",
                 Deadline = request.Deadline,
                 Status = NeedStatus.Open
             };

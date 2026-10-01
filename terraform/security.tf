@@ -5,8 +5,8 @@ resource "aws_security_group" "alb" {
 
   ingress {
     description = "HTTP from Internet"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = var.alb_listener_port
+    to_port     = var.alb_listener_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
