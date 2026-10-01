@@ -124,6 +124,53 @@ public class AuthenticationTests
 
     private record Profile(Guid Id);
     [Fact]
+    public async Task Profile_is_retrieved_by_fresh_client_and_other_member_edits_are_isolated()
+    {
+        using var factory = new ApiFactory();
+        using var first = factory.CreateClient();
+        first.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        Assert.Equal(HttpStatusCode.OK, (await first.PatchAsJsonAsync("/api/users/me", new {
+            firstName = "Mary Jane", lastName = "van der Berg", city = "Auckland", bio = "Saved profile" })).StatusCode);
+
+        using var other = factory.CreateClient();
+        other.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        Assert.Equal(HttpStatusCode.OK, (await other.PatchAsJsonAsync("/api/users/me", new {
+            firstName = "Other", city = "Wellington", bio = "Private B" })).StatusCode);
+
+        using var fresh = factory.CreateClient();
+        fresh.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var profile = await fresh.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me");
+        Assert.Equal("Mary Jane", profile.GetProperty("firstName").GetString());
+        Assert.Equal("van der Berg", profile.GetProperty("lastName").GetString());
+        Assert.Equal("Auckland", profile.GetProperty("city").GetString());
+        Assert.Equal("Saved profile", profile.GetProperty("bio").GetString());
+        Assert.False(profile.TryGetProperty("authSubjectId", out _));
+        Assert.Equal(HttpStatusCode.OK, (await fresh.PatchAsJsonAsync("/api/users/me", new { bio = "" })).StatusCode);
+        var cleared = await fresh.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me");
+        Assert.Equal("", cleared.GetProperty("bio").GetString());
+        Assert.Equal("Mary Jane", cleared.GetProperty("firstName").GetString());
+    }
+
+    [Theory]
+    [InlineData("firstName", 201)]
+    [InlineData("lastName", 201)]
+    [InlineData("city", 201)]
+    [InlineData("bio", 2001)]
+    public async Task Invalid_profile_lengths_do_not_mutate_saved_data(string field, int length)
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        await client.PatchAsJsonAsync("/api/users/me", new { firstName = "Saved", city = "Auckland", bio = "Original" });
+        var payload = new Dictionary<string, string> { [field] = new string('x', length) };
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PatchAsJsonAsync("/api/users/me", payload)).StatusCode);
+        var profile = await client.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me");
+        Assert.Equal("Saved", profile.GetProperty("firstName").GetString());
+        Assert.Equal("Auckland", profile.GetProperty("city").GetString());
+        Assert.Equal("Original", profile.GetProperty("bio").GetString());
+    }
+
+    [Fact]
     public async Task Profile_patch_is_persistent_and_cannot_assign_identity_or_reputation()
     {
         using var factory = new ApiFactory();
