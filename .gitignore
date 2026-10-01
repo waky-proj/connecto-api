@@ -27,3 +27,4 @@
 # Build outputs across configurations
 **/bin/
 **/obj/
+/Connecto.Api/appsettings.Development.json
