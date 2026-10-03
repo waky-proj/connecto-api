@@ -43,3 +43,6 @@ jobs:
 
       - name: Test
         run: dotnet test Connecto.Api/Connecto.Api.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Build Docker image
+        run: docker build --file Dockerfile --tag connecto-api:ci .

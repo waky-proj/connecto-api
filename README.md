@@ -6,6 +6,8 @@ Existing ASP.NET Core API and modular core | 1 October 2026
 
 This repository contains the .NET 10 API, application/domain projects, EF Core SQL Server persistence, migration runner, tests, Docker and AWS Terraform/deployment configuration. It remains authoritative during staged migration. New service repositories are documentation scaffolds; creation does not extract any capability.
 
+The opt-in SQL Server and fresh-browser F3 acceptance commands and prerequisites are in [F3_ACCEPTANCE.md](F3_ACCEPTANCE.md). A skipped path is not acceptance evidence.
+
 Implemented: Cognito access-token authentication and subject-based user provisioning, self-profile retrieval/allowlisted editing, paginated own activity, Need/Offering creation and owner-authorised Need matching. Match mapping is not a persistent accepted-agreement lifecycle. Discovery/preview and Offering matches include placeholders. AI parsing is unavailable: authenticated parse routes return 503 ProblemDetails with manual-entry guidance, and structured posting starts and works without an AI key. Setting a key does not enable extraction; the vendor adapter is not implemented. Matching-weight defaults are not wired into MatchingEngine. Connections, Engagements, persistent chat, Feedback, Media, Safety cases and measurement remain future work.
 
 ## Current HTTP contracts

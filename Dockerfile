@@ -57,3 +57,6 @@ ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=publish /app/publish .
 COPY --from=publish /app/migration ./migration
 ENTRYPOINT ["dotnet", "Connecto.Api.dll"]
+
+COPY certs/ap-southeast-2-bundle.pem /usr/local/share/ca-certificates/rds-ca-ap-southeast-2.crt
+RUN update-ca-certificates
