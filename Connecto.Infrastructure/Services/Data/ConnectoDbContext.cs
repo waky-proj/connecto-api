@@ -125,6 +125,10 @@ namespace Connecto.Infrastructure.Services.Data
                 entity.Property(x => x.BudgetMax)
                     .HasPrecision(18, 2);
 
+                entity.Property(x => x.Currency).HasMaxLength(3);
+                entity.Property(x => x.EstimatedHours).HasPrecision(9, 2);
+                entity.Property(x => x.Revision).IsConcurrencyToken();
+
                 entity.Property(x => x.Location)
                     .HasMaxLength(200);
 
@@ -158,6 +162,10 @@ namespace Connecto.Infrastructure.Services.Data
 
                 entity.Property(x => x.PriceMax)
                     .HasPrecision(18, 2);
+
+                entity.Property(x => x.Currency).HasMaxLength(3);
+                entity.Property(x => x.EstimatedHours).HasPrecision(9, 2);
+                entity.Property(x => x.Revision).IsConcurrencyToken();
 
                 entity.Property(x => x.Location)
                     .HasMaxLength(200);

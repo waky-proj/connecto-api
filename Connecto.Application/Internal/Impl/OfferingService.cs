@@ -1,5 +1,6 @@
 ﻿using Connecto.Domain.Entities;
 using Connecto.Domain.Requests;
+using Connecto.Domain.Listings;
 using Connecto.Infrastructure.Services;
 
 namespace Connecto.Application.Internal.Impl
@@ -33,12 +34,16 @@ namespace Connecto.Application.Internal.Impl
                 Category = request.Category.Trim(),
                 PriceMin = request.PriceMin,
                 PriceMax = request.PriceMax,
+                Currency = ListingPolicy.Currency,
+                PricingBasis = ListingPolicy.ParsePricingBasis(request.PricingBasis),
+                EstimatedHours = request.EstimatedHours,
                 Location = request.Location?.Trim(),
                 RemoteAvailable = request.RemoteAvailable,
                 AvailableFrom = request.AvailableFrom,
                 AvailableUntil = request.AvailableUntil,
                 ExperienceYears = request.ExperienceYears,
-                Status = OfferingStatus.Active
+                Status = OfferingStatus.Published,
+                Revision = 1
             };
 
             foreach (var skill in request.Skills
@@ -72,13 +77,9 @@ namespace Connecto.Application.Internal.Impl
             if (string.IsNullOrWhiteSpace(request.Category))
                 throw new ArgumentException("Category is required.");
 
-            if (request.PriceMin.HasValue &&
-                request.PriceMax.HasValue &&
-                request.PriceMin > request.PriceMax)
-            {
-                throw new ArgumentException(
-                    "PriceMin cannot be greater than PriceMax.");
-            }
+            ListingPolicy.ValidateTerms(request.Category.Trim(), request.Currency,
+                ListingPolicy.ParsePricingBasis(request.PricingBasis), request.PriceMin, request.PriceMax,
+                request.EstimatedHours, false);
 
             if (request.ExperienceYears < 0)
                 throw new ArgumentException(

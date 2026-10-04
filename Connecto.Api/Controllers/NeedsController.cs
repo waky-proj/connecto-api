@@ -21,21 +21,23 @@ namespace Connecto.Api.Controllers
             CreateNeedRequest request,
             CancellationToken cancellationToken)
         {
-            var need = await needService.CreateAsync(
-                (await currentUser.GetAsync(cancellationToken)).Id,
-                request,
-                cancellationToken);
+            try
+            {
+                var need = await needService.CreateAsync(
+                    (await currentUser.GetAsync(cancellationToken)).Id,
+                    request,
+                    cancellationToken);
 
-            return CreatedAtAction(
-                nameof(GetMatches),
-                new { needId = need.Id },
-                new
-                {
-                    need.Id,
-                    need.Title,
-                    need.Category,
-                    need.Status
-                });
+                return CreatedAtAction(
+                    nameof(GetMatches),
+                    new { needId = need.Id },
+                    new { need.Id, need.Title, need.Category, need.Currency, need.PricingBasis,
+                        need.EstimatedHours, need.Revision, need.Status });
+            }
+            catch (ArgumentException error)
+            {
+                return BadRequest(new ProblemDetails { Title = "Invalid listing terms", Detail = error.Message });
+            }
         }
 
         [HttpGet("{needId:guid}/matches")]

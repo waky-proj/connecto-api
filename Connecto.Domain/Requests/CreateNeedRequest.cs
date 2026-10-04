@@ -11,5 +11,8 @@
         decimal? BudgetMin,
         decimal? BudgetMax,
         string? Location,
-        DateTime? Deadline);
+        DateTime? Deadline,
+        string? Currency = null,
+        string? PricingBasis = null,
+        decimal? EstimatedHours = null);
 }

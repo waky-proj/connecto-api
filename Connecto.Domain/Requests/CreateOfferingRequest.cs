@@ -14,5 +14,8 @@
         bool RemoteAvailable,
         DateTime? AvailableFrom,
         DateTime? AvailableUntil,
-        int ExperienceYears);
+        int ExperienceYears,
+        string? Currency = null,
+        string? PricingBasis = null,
+        decimal? EstimatedHours = null);
 }

@@ -39,6 +39,14 @@
 
         public decimal? PriceMax { get; set; }
 
+        public string? Currency { get; set; }
+
+        public PricingBasis PricingBasis { get; set; } = PricingBasis.LegacyUnknown;
+
+        public decimal? EstimatedHours { get; set; }
+
+        public int Revision { get; set; }
+
         public string Location { get; set; }
 
         public int ExperienceYears { get; set; }
@@ -64,8 +72,11 @@
 
     public enum OfferingStatus
     {
-        Active,
-        Unavailable,
-        Closed
+        Draft,
+        Published,
+        Paused,
+        Closed,
+        Active = Published,
+        Unavailable = Paused
     }
 }

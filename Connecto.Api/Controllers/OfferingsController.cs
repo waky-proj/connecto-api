@@ -22,20 +22,22 @@ namespace Connecto.Api.Controllers
             CreateOfferingRequest request,
             CancellationToken cancellationToken)
         {
-            var offering = await offeringService.CreateAsync(
-                (await currentUser.GetAsync(cancellationToken)).Id,
-                request,
-                cancellationToken);
+            try
+            {
+                var offering = await offeringService.CreateAsync(
+                    (await currentUser.GetAsync(cancellationToken)).Id,
+                    request,
+                    cancellationToken);
 
-            return Created(
-                $"/api/offerings/{offering.Id}",
-                new
-                {
-                    offering.Id,
-                    offering.Title,
-                    offering.Category,
-                    offering.Status
-                });
+                return Created(
+                    $"/api/offerings/{offering.Id}",
+                    new { offering.Id, offering.Title, offering.Category, offering.Currency,
+                        offering.PricingBasis, offering.EstimatedHours, offering.Revision, offering.Status });
+            }
+            catch (ArgumentException error)
+            {
+                return BadRequest(new ProblemDetails { Title = "Invalid listing terms", Detail = error.Message });
+            }
         }
 
         [HttpGet("{id:guid}/matches")]

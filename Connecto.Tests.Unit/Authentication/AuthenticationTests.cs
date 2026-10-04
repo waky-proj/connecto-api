@@ -48,9 +48,9 @@ public class AuthenticationTests
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/users/me")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PatchAsJsonAsync("/api/users/me", new { city = "Auckland" })).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/needs",
-            new CreateNeedRequest("Need", "Help", "Technical", ["Programming"], null, null, null, null))).StatusCode);
+            new CreateNeedRequest("Need", "Help", "Technology", ["Programming"], null, null, null, null, "NZD", "free"))).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/offerings",
-            new CreateOfferingRequest("Offering", "Help", "Technical", ["Programming"], null, null, "Auckland", false, null, null, 0))).StatusCode);
+            new CreateOfferingRequest("Offering", "Help", "Technology", ["Programming"], null, null, "Auckland", false, null, null, 0, "NZD", "free"))).StatusCode);
         var activity = await client.GetFromJsonAsync<Activity>("/api/users/me/activity");
         Assert.Single(activity!.Needs);
         Assert.Single(activity.Offerings);
@@ -65,6 +65,27 @@ public class AuthenticationTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/needs", new { })).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/offerings", new { })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health")).StatusCode);
+    }
+
+    [Fact]
+    public async Task New_listings_require_managed_NZD_terms_and_return_their_revision()
+    {
+        using var factory = new ApiFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var invalid = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Invalid", "Description", "Technical", ["Programming"], 1, 10, "Auckland", null,
+            "USD", "fixed"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        var created = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Hourly", "Description", "Technology", ["Programming"], 25, 50, "Auckland", null,
+            "NZD", "hourly", 2));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var listing = await created.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal("NZD", listing.GetProperty("currency").GetString());
+        Assert.Equal(2, listing.GetProperty("pricingBasis").GetInt32());
+        Assert.Equal(1, listing.GetProperty("revision").GetInt32());
     }
 
     [Fact]
@@ -202,7 +223,7 @@ public class AuthenticationTests
         using var factory = new ApiFactory();
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
-        var response = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest("Private A", "Description", "Technical", ["Programming"], 1, 10, "Auckland", null));
+        var response = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest("Private A", "Description", "Technology", ["Programming"], 1, 10, "Auckland", null, "NZD", "fixed"));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var own = await client.GetFromJsonAsync<Activity>("/api/users/me/activity?pageSize=1");
         Assert.Equal(1, own!.NeedTotal);
@@ -230,10 +251,10 @@ public class AuthenticationTests
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
         client.DefaultRequestHeaders.Add("X-User-Id", Guid.NewGuid().ToString());
-        var needResponse = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest("Need", "Description", "Technical", ["Programming"], null, null, null, null));
+        var needResponse = await client.PostAsJsonAsync("/api/needs", new CreateNeedRequest("Need", "Description", "Technology", ["Programming"], null, null, null, null, "NZD", "negotiable"));
         Assert.Equal(HttpStatusCode.Created, needResponse.StatusCode);
         var need = await needResponse.Content.ReadFromJsonAsync<Listing>();
-        var offeringResponse = await client.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest("Offering", "Description", "Technical", ["Programming"], null, null, "Auckland", false, null, null, 0));
+        var offeringResponse = await client.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest("Offering", "Description", "Technology", ["Programming"], null, null, "Auckland", false, null, null, 0, "NZD", "negotiable"));
         Assert.Equal(HttpStatusCode.Created, offeringResponse.StatusCode);
         var offering = await offeringResponse.Content.ReadFromJsonAsync<Listing>();
         var profile = await client.GetFromJsonAsync<Profile>("/api/users/me");
