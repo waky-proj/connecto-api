@@ -65,21 +65,22 @@ public class SqlServerAcceptanceTests
                 for (var i = 0; i < 3; i++)
                 {
                     var response = await a.PostAsJsonAsync("/api/needs", new {
-                        title = $"F3 A need {i} {suffix}", description = "SQL acceptance", category = "Technical",
-                        skills = new[] { "Programming" }, location = "Auckland"
+                        title = $"F3 A need {i} {suffix}", description = "SQL acceptance", category = "Technology",
+                        skills = new[] { "Programming" }, location = "Auckland", currency = "NZD", pricingBasis = "free"
                     });
                     Assert.Equal(HttpStatusCode.Created, response.StatusCode);
                     aNeeds.Add((await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
                 }
                 var aOffering = await a.PostAsJsonAsync("/api/offerings", new {
-                    title = $"F3 A offer {suffix}", description = "SQL acceptance", category = "Technical",
-                    skills = new[] { "Programming" }, location = "Auckland", remoteAvailable = false, experienceYears = 0
+                    title = $"F3 A offer {suffix}", description = "SQL acceptance", category = "Technology",
+                    skills = new[] { "Programming" }, location = "Auckland", remoteAvailable = false, experienceYears = 0,
+                    currency = "NZD", pricingBasis = "free"
                 });
                 Assert.Equal(HttpStatusCode.Created, aOffering.StatusCode);
                 var aOfferingId = (await aOffering.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
                 var bNeed = await b.PostAsJsonAsync("/api/needs", new {
-                    title = $"F3 B need {suffix}", description = "SQL acceptance", category = "Technical",
-                    skills = new[] { "Programming" }, location = "Wellington"
+                    title = $"F3 B need {suffix}", description = "SQL acceptance", category = "Technology",
+                    skills = new[] { "Programming" }, location = "Wellington", currency = "NZD", pricingBasis = "free"
                 });
                 Assert.Equal(HttpStatusCode.Created, bNeed.StatusCode);
                 var bNeedId = (await bNeed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();

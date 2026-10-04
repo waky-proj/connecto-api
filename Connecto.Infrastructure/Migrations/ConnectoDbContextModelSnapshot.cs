@@ -100,6 +100,10 @@ namespace Connecto.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
                     b.Property<DateTime?>("Deadline")
                         .HasColumnType("datetime2");
 
@@ -108,13 +112,24 @@ namespace Connecto.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<decimal?>("EstimatedHours")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int>("PricingBasis")
+                        .HasColumnType("int");
+
                     b.Property<bool>("RemoteAllowed")
                         .HasColumnType("bit");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -140,8 +155,10 @@ namespace Connecto.Infrastructure.Migrations
                             Category = "Technical",
                             Description = "Need a web developer",
                             Location = "Auckland",
+                            PricingBasis = 0,
                             RemoteAllowed = false,
-                            Status = 0,
+                            Revision = 0,
+                            Status = 1,
                             Title = "Need a web developer",
                             UserId = new Guid("c4d3ee71-e814-407f-a7bc-be260734880f")
                         },
@@ -151,8 +168,10 @@ namespace Connecto.Infrastructure.Migrations
                             Category = "Creative",
                             Description = "Need a graphic designer",
                             Location = "Wellington",
+                            PricingBasis = 0,
                             RemoteAllowed = false,
-                            Status = 0,
+                            Revision = 0,
+                            Status = 1,
                             Title = "Need a graphic designer",
                             UserId = new Guid("9d5377df-7f3b-4bce-84e4-0dc88984c35d")
                         });
@@ -209,10 +228,18 @@ namespace Connecto.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
+
+                    b.Property<decimal?>("EstimatedHours")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
 
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("int");
@@ -230,11 +257,18 @@ namespace Connecto.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("PricingBasis")
+                        .HasColumnType("int");
+
                     b.Property<bool>("RemoteAvailable")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("ReputationScore")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -261,9 +295,11 @@ namespace Connecto.Infrastructure.Migrations
                             Description = "Offering web development services",
                             ExperienceYears = 0,
                             Location = "Auckland",
+                            PricingBasis = 0,
                             RemoteAvailable = false,
                             ReputationScore = 0m,
-                            Status = 0,
+                            Revision = 0,
+                            Status = 1,
                             Title = "Offering web development services",
                             UserId = new Guid("25073136-a13e-4b78-881f-138062c9fb44")
                         },
@@ -274,9 +310,11 @@ namespace Connecto.Infrastructure.Migrations
                             Description = "Offering graphic design services",
                             ExperienceYears = 0,
                             Location = "Wellington",
+                            PricingBasis = 0,
                             RemoteAvailable = false,
                             ReputationScore = 0m,
-                            Status = 0,
+                            Revision = 0,
+                            Status = 1,
                             Title = "Offering graphic design services",
                             UserId = new Guid("2ecd4582-6582-420a-8edc-96be5753de13")
                         });

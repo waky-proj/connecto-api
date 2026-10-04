@@ -1,5 +1,6 @@
 ﻿using Connecto.Domain.Entities;
 using Connecto.Domain.Requests;
+using Connecto.Domain.Listings;
 using Connecto.Infrastructure.Services;
 
 namespace Connecto.Application.Internal.Impl
@@ -32,9 +33,13 @@ namespace Connecto.Application.Internal.Impl
                 Category = request.Category.Trim(),
                 BudgetMin = request.BudgetMin,
                 BudgetMax = request.BudgetMax,
+                Currency = ListingPolicy.Currency,
+                PricingBasis = ListingPolicy.ParsePricingBasis(request.PricingBasis),
+                EstimatedHours = request.EstimatedHours,
                 Location = request.Location?.Trim() ?? "",
                 Deadline = request.Deadline,
-                Status = NeedStatus.Open
+                Status = NeedStatus.Published,
+                Revision = 1
             };
 
             foreach (var skill in request.Skills
@@ -68,13 +73,9 @@ namespace Connecto.Application.Internal.Impl
             if (string.IsNullOrWhiteSpace(request.Category))
                 throw new ArgumentException("Category is required.");
 
-            if (request.BudgetMin.HasValue &&
-                request.BudgetMax.HasValue &&
-                request.BudgetMin > request.BudgetMax)
-            {
-                throw new ArgumentException(
-                    "BudgetMin cannot be greater than BudgetMax.");
-            }
+            ListingPolicy.ValidateTerms(request.Category.Trim(), request.Currency,
+                ListingPolicy.ParsePricingBasis(request.PricingBasis), request.BudgetMin, request.BudgetMax,
+                request.EstimatedHours, true);
         }
     }
 }

@@ -39,6 +39,14 @@
 
         public decimal? BudgetMax { get; set; }
 
+        public string? Currency { get; set; }
+
+        public PricingBasis PricingBasis { get; set; } = PricingBasis.LegacyUnknown;
+
+        public decimal? EstimatedHours { get; set; }
+
+        public int Revision { get; set; }
+
         public string Location { get; set; }
 
         public bool RemoteAllowed { get; set; }
@@ -53,8 +61,11 @@
 
     public enum NeedStatus
     {
-        Open,
-        Matched,
-        Closed
+        Draft,
+        Published,
+        Paused,
+        Closed,
+        Open = Published,
+        Matched = Published
     }
 }

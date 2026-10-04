@@ -43,12 +43,14 @@ public class UserController(ICurrentUser currentUser, ConnectoDbContext db) : Co
         var offeringTotal = await offerings.CountAsync(cancellationToken);
         var needItems = await needs.OrderBy(x => x.Id).Skip((int)skip).Take(pageSize)
             .Select(x => new { x.Id, x.Title, x.Description, x.Category, x.BudgetMin, x.BudgetMax,
-                x.Location, x.Deadline, x.Status, Skills = x.Skills.Select(s => s.Skill).ToArray() })
+                x.Currency, x.PricingBasis, x.EstimatedHours, x.Revision, x.Location, x.Deadline, x.Status,
+                Skills = x.Skills.Select(s => s.Skill).ToArray() })
             .ToListAsync(cancellationToken);
         var offeringItems = await offerings.OrderBy(x => x.Id).Skip((int)skip).Take(pageSize)
             .Select(x => new { x.Id, x.Title, x.Description, x.Category, x.PriceMin, x.PriceMax,
-                x.Location, x.AvailableFrom, x.AvailableUntil, x.RemoteAvailable, x.ExperienceYears,
-                x.Status, Skills = x.Skills.Select(s => s.Skill).ToArray() })
+                x.Currency, x.PricingBasis, x.EstimatedHours, x.Revision, x.Location, x.AvailableFrom,
+                x.AvailableUntil, x.RemoteAvailable, x.ExperienceYears, x.Status,
+                Skills = x.Skills.Select(s => s.Skill).ToArray() })
             .ToListAsync(cancellationToken);
         return Ok(new { page, pageSize, needTotal, offeringTotal, needs = needItems, offerings = offeringItems });
     }
