@@ -12,7 +12,7 @@ namespace Connecto.Infrastructure.Services
         
         IQueryable<Offering> Query();
         
-        Task Update(Offering offering);
+        Task<bool> Update(Offering offering, int expectedRevision);
         
         Task Delete(Offering offering);
     }

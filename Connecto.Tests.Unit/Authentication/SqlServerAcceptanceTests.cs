@@ -98,6 +98,30 @@ public class SqlServerAcceptanceTests
                 Assert.Equal(1, bActivity.GetProperty("needTotal").GetInt32());
                 Assert.Equal(bNeedId, bActivity.GetProperty("needs")[0].GetProperty("id").GetGuid());
                 Assert.Equal(0, bActivity.GetProperty("offeringTotal").GetInt32());
+
+                var editableNeed = first.GetProperty("needs")[0];
+                var editableNeedId = editableNeed.GetProperty("id").GetGuid();
+                var revision = editableNeed.GetProperty("revision").GetInt32();
+                var update = new {
+                    revision, title = $"F3 edited need {suffix}", description = "Edited SQL acceptance",
+                    category = "Technology", skills = new[] { "Programming" }, budgetMin = (decimal?)null,
+                    budgetMax = (decimal?)null, currency = "NZD", pricingBasis = "free", estimatedHours = (decimal?)null,
+                    location = "Auckland", deadline = (DateTime?)null
+                };
+                var edit = await a.PatchAsJsonAsync($"/api/needs/{editableNeedId}", update);
+                Assert.Equal(HttpStatusCode.OK, edit.StatusCode);
+                var edited = await edit.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(revision + 1, edited.GetProperty("revision").GetInt32());
+                Assert.Equal(HttpStatusCode.Conflict, (await a.PatchAsJsonAsync($"/api/needs/{editableNeedId}", update)).StatusCode);
+                Assert.Equal(HttpStatusCode.Forbidden, (await b.PatchAsJsonAsync($"/api/needs/{editableNeedId}", update)).StatusCode);
+                var paused = await a.PostAsJsonAsync($"/api/needs/{editableNeedId}/pause", new { revision = revision + 1 });
+                Assert.Equal(HttpStatusCode.OK, paused.StatusCode);
+                Assert.Equal(HttpStatusCode.Conflict,
+                    (await a.PostAsJsonAsync($"/api/needs/{editableNeedId}/pause", new { revision = revision + 1 })).StatusCode);
+                var closed = await a.PostAsJsonAsync($"/api/needs/{editableNeedId}/close", new { revision = revision + 2 });
+                Assert.Equal(HttpStatusCode.OK, closed.StatusCode);
+                Assert.Equal(HttpStatusCode.Conflict,
+                    (await a.PostAsJsonAsync($"/api/needs/{editableNeedId}/pause", new { revision = revision + 3 })).StatusCode);
                 Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync($"/api/needs/{aNeeds.First()}/matches")).StatusCode);
                 Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync($"/api/offerings/{aOfferingId}/matches")).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest, (await a.GetAsync("/api/users/me/activity?pageSize=101")).StatusCode);

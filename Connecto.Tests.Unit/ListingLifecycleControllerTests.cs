@@ -93,7 +93,7 @@ public sealed class ListingLifecycleControllerTests
         public Task Add(Need item) => Task.CompletedTask;
         public Task<Need?> GetById(Guid id) => Task.FromResult(_need?.Id == id ? _need : null);
         public Task<List<Need>> GetAll() => Task.FromResult(_need is null ? new List<Need>() : new List<Need> { _need });
-        public Task Update(Need item) { Updated = true; return Task.CompletedTask; }
+        public Task<bool> Update(Need item, int expectedRevision) { Updated = true; return Task.FromResult(true); }
         public Task Delete(Need item) => Task.CompletedTask;
     }
 
@@ -105,7 +105,7 @@ public sealed class ListingLifecycleControllerTests
         public Task<Offering?> GetById(Guid id) => Task.FromResult(_offering?.Id == id ? _offering : null);
         public Task<List<Offering>> GetAll() => Task.FromResult(_offering is null ? new List<Offering>() : new List<Offering> { _offering });
         public IQueryable<Offering> Query() => _offering is null ? Enumerable.Empty<Offering>().AsQueryable() : new[] { _offering }.AsQueryable();
-        public Task Update(Offering item) { Updated = true; return Task.CompletedTask; }
+        public Task<bool> Update(Offering item, int expectedRevision) { Updated = true; return Task.FromResult(true); }
         public Task Delete(Offering item) => Task.CompletedTask;
     }
 }
