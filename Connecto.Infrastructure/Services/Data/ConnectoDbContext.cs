@@ -14,6 +14,11 @@ namespace Connecto.Infrastructure.Services.Data
         public DbSet<Offering> Offerings => Set<Offering>();
         public DbSet<NeedSkill> NeedSkills => Set<NeedSkill>();
         public DbSet<OfferingSkill> OfferingSkills => Set<OfferingSkill>();
+        public DbSet<MemberBlock> MemberBlocks => Set<MemberBlock>();
+        public DbSet<SafetyReport> SafetyReports => Set<SafetyReport>();
+        public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
+        public DbSet<ConsumerReceipt> ConsumerReceipts => Set<ConsumerReceipt>();
+        public DbSet<JourneyEvent> JourneyEvents => Set<JourneyEvent>();
 
         public ConnectoDbContext(
             DbContextOptions<ConnectoDbContext> options)
@@ -28,6 +33,43 @@ namespace Connecto.Infrastructure.Services.Data
             ConfigureNeed(modelBuilder);
             ConfigureOffering(modelBuilder);
             ConfigureMatch(modelBuilder);
+            modelBuilder.Entity<MemberBlock>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.HasIndex(x => new { x.BlockerId, x.BlockedId }).IsUnique();
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.BlockerId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.BlockedId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<SafetyReport>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Reason).HasMaxLength(40).IsRequired();
+                entity.Property(x => x.Details).HasMaxLength(2000).IsRequired();
+                entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+                entity.Property(x => x.OperatorSubjectId).HasMaxLength(128);
+                entity.HasIndex(x => new { x.Status, x.CreatedAt });
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.ReporterId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.SubjectId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<OutboxEvent>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Type).HasMaxLength(80).IsRequired();
+                entity.HasIndex(x => new { x.DeliveredAt, x.OccurredAt });
+            });
+            modelBuilder.Entity<ConsumerReceipt>(entity =>
+            {
+                entity.HasKey(x => new { x.EventId, x.Consumer });
+                entity.Property(x => x.Consumer).HasMaxLength(80);
+                entity.HasOne<OutboxEvent>().WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<JourneyEvent>(entity =>
+            {
+                entity.HasKey(x => x.EventId);
+                entity.Property(x => x.Type).HasMaxLength(80).IsRequired();
+                entity.HasOne<OutboxEvent>().WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.NoAction);
+            });
 
             modelBuilder.Entity<NeedSkill>(entity =>
             {
