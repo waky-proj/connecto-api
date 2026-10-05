@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Connecto.Api.Authentication;
+using Connecto.Api.Safety;
 using Connecto.Domain.Entities;
 using Connecto.Domain.Requests;
 using Connecto.Infrastructure.Services.Data;
@@ -245,6 +246,74 @@ public class AuthenticationTests
     private record Listing(Guid Id);
 
     [Fact]
+    public async Task Block_hides_discovery_and_matches_and_unblock_restores_visibility()
+    {
+        using var factory = new ApiFactory();
+        using var a = factory.CreateClient();
+        a.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var need = await (await a.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Laptop help", "Description", "Technology", ["Programming"], null, null,
+            "Auckland", null, "NZD", "negotiable"))).Content.ReadFromJsonAsync<Listing>();
+        using var b = factory.CreateClient();
+        b.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        var member = await b.GetFromJsonAsync<Profile>("/api/users/me");
+        var offer = await (await b.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Laptop help", "Description", "Technology", ["Programming"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"))).Content.ReadFromJsonAsync<Listing>();
+        Assert.Equal(1, (await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings")).GetProperty("total").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent, (await a.PutAsync($"/api/safety/blocks/{member!.Id}", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await a.PutAsync($"/api/safety/blocks/{member.Id}", null)).StatusCode);
+        Assert.Equal(0, (await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings")).GetProperty("total").GetInt32());
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync($"/api/discover/offerings/{offer!.Id}")).StatusCode);
+        Assert.Equal(0, (await a.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/needs/{need!.Id}/matches")).GetArrayLength());
+        Assert.Equal(0, (await b.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings")).GetProperty("total").GetInt32());
+        Assert.Equal(HttpStatusCode.NoContent, (await a.DeleteAsync($"/api/safety/blocks/{member.Id}")).StatusCode);
+        Assert.Equal(1, (await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings")).GetProperty("total").GetInt32());
+    }
+
+    [Fact]
+    public async Task Reports_are_private_operator_cases_require_group_and_outbox_replays_once()
+    {
+        using var factory = new ApiFactory();
+        using var a = factory.CreateClient();
+        a.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        using var b = factory.CreateClient();
+        b.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        var subject = await b.GetFromJsonAsync<Profile>("/api/users/me");
+        var created = await a.PostAsJsonAsync("/api/safety/reports", new {
+            subjectId = subject!.Id, reason = "unsafe", details = "Concerning interaction" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var body = await created.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var caseId = body.GetProperty("id").GetGuid();
+        Assert.Single((await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/safety/reports")).EnumerateArray());
+        Assert.Equal(0, (await b.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/safety/reports")).GetArrayLength());
+        Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync("/api/safety/cases")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await b.GetAsync($"/api/safety/cases/{caseId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await b.PostAsync($"/api/safety/cases/{caseId}/review", null)).StatusCode);
+        using var operatorClient = factory.CreateClient();
+        operatorClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "operator", group: "safety-operators"));
+        Assert.Single((await operatorClient.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/safety/cases")).EnumerateArray());
+        Assert.Equal(HttpStatusCode.OK, (await operatorClient.PostAsync($"/api/safety/cases/{caseId}/review", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await operatorClient.PostAsync($"/api/safety/cases/{caseId}/review", null)).StatusCode);
+
+        var dispatcher = factory.Services.GetRequiredService<OutboxDispatcher>();
+        await dispatcher.DispatchBatchAsync();
+        await dispatcher.DispatchBatchAsync();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+        Assert.Equal(2, await db.OutboxEvents.CountAsync());
+        Assert.Equal(2, await db.ConsumerReceipts.CountAsync());
+        Assert.Equal(2, await db.JourneyEvents.CountAsync());
+        Assert.All(await db.OutboxEvents.ToListAsync(), item => Assert.NotNull(item.DeliveredAt));
+        // Simulate a dispatcher crash after its consumer commit but before an ack is observed.
+        foreach (var item in await db.OutboxEvents.ToListAsync()) item.DeliveredAt = null;
+        await db.SaveChangesAsync();
+        await dispatcher.DispatchBatchAsync();
+        Assert.Equal(2, await db.ConsumerReceipts.CountAsync());
+        Assert.Equal(2, await db.JourneyEvents.CountAsync());
+    }
+
+    [Fact]
     public async Task Discovery_uses_persisted_public_details_and_excludes_self_and_paused_listings()
     {
         using var factory = new ApiFactory();
@@ -332,6 +401,7 @@ public class AuthenticationTests
             builder.UseSetting("Cognito:Issuer", "https://test-issuer.example");
             builder.UseSetting("Cognito:Audience", "test-client");
             builder.UseSetting("OpenAI:ApiKey", apiKey);
+            builder.UseSetting("Safety:OperatorGroup", "safety-operators");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<ConnectoDbContext>>();
@@ -346,11 +416,13 @@ public class AuthenticationTests
             });
         }
 
-        public string Token(string use = "access", string clientId = "test-client", string issuer = "https://test-issuer.example", bool expired = false, bool wrongKey = false, string subject = "subject-1")
+        public string Token(string use = "access", string clientId = "test-client", string issuer = "https://test-issuer.example", bool expired = false, bool wrongKey = false, string subject = "subject-1", string? group = null)
         {
             using var other = RSA.Create(2048);
             var key = new RsaSecurityKey(wrongKey ? other : rsa) { KeyId = "test-key" };
-            var token = new JwtSecurityToken(issuer, claims: [new Claim("sub", subject), new Claim("token_use", use), new Claim("client_id", clientId)],
+            var claims = new List<Claim> { new("sub", subject), new("token_use", use), new("client_id", clientId) };
+            if (group is not null) claims.Add(new Claim("cognito:groups", group));
+            var token = new JwtSecurityToken(issuer, claims: claims,
                 notBefore: DateTime.UtcNow.AddHours(-2), expires: expired ? DateTime.UtcNow.AddHours(-1) : DateTime.UtcNow.AddMinutes(10),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.RsaSha256));
             return new JwtSecurityTokenHandler().WriteToken(token);

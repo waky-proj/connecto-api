@@ -2,6 +2,7 @@ using Connecto.Domain.Entities;
 using Connecto.Domain.Matching;
 using Connecto.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Connecto.Infrastructure.Services.Data;
 
 namespace Connecto.Application.Internal.Impl
 {
@@ -10,7 +11,7 @@ namespace Connecto.Application.Internal.Impl
     /// </summary>
     public sealed class MatchService(INeedDbService needDbService,
         IOfferingDbService offeringDbService,
-        IMatchingEngine matchingEngine) : IMatchService
+        IMatchingEngine matchingEngine, ConnectoDbContext db) : IMatchService
     {
         public async Task<IReadOnlyCollection<MatchResult>> FindMatchesAsync(
             Guid needId,
@@ -28,7 +29,9 @@ namespace Connecto.Application.Internal.Impl
             var offerings = await offeringDbService.Query()
                 .Where(x => x.UserId != need.UserId && x.Status == OfferingStatus.Published &&
                     x.PricingBasis == need.PricingBasis && x.Currency == need.Currency &&
-                    x.Category == need.Category)
+                    x.Category == need.Category &&
+                    !db.MemberBlocks.Any(b => (b.BlockerId == need.UserId && b.BlockedId == x.UserId) ||
+                        (b.BlockerId == x.UserId && b.BlockedId == need.UserId)))
                 .ToListAsync(cancellationToken);
 
             return [..offerings

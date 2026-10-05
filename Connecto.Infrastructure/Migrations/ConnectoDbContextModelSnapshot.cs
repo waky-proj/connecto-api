@@ -22,6 +22,50 @@ namespace Connecto.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Connecto.Domain.Entities.ConsumerReceipt", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Consumer")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EventId", "Consumer");
+
+                    b.ToTable("ConsumerReceipts");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.JourneyEvent", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("JourneyEvents");
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.Match", b =>
                 {
                     b.Property<Guid>("Id")
@@ -79,6 +123,31 @@ namespace Connecto.Infrastructure.Migrations
                     b.HasIndex("OfferingId");
 
                     b.ToTable("Match");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MemberBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedId");
+
+                    b.HasIndex("BlockerId", "BlockedId")
+                        .IsUnique();
+
+                    b.ToTable("MemberBlocks");
                 });
 
             modelBuilder.Entity("Connecto.Domain.Entities.Need", b =>
@@ -354,6 +423,95 @@ namespace Connecto.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.OutboxEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeliveredAt", "OccurredAt");
+
+                    b.ToTable("OutboxEvents");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.SafetyReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OperatorSubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferingId");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("SafetyReports");
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -476,6 +634,24 @@ namespace Connecto.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.ConsumerReceipt", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.OutboxEvent", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.JourneyEvent", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.OutboxEvent", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.Match", b =>
                 {
                     b.HasOne("Connecto.Domain.Entities.Need", null)
@@ -488,6 +664,21 @@ namespace Connecto.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("OfferingId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MemberBlock", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("BlockedId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("BlockerId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });
 
@@ -533,6 +724,26 @@ namespace Connecto.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Offering");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.SafetyReport", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Offering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Connecto.Domain.Entities.Need", b =>

@@ -22,7 +22,9 @@ public sealed class DiscoverController(ConnectoDbContext db, ICurrentUser curren
         var memberId = (await currentUser.GetAsync(cancellationToken)).Id;
         var candidates = db.Offerings.AsNoTracking().Include(x => x.User).Include(x => x.Skills)
             .Where(x => x.UserId != memberId && x.Status == OfferingStatus.Published &&
-                x.PricingBasis != PricingBasis.LegacyUnknown && x.Currency == "NZD");
+                x.PricingBasis != PricingBasis.LegacyUnknown && x.Currency == "NZD" &&
+                !db.MemberBlocks.Any(b => (b.BlockerId == memberId && b.BlockedId == x.UserId) ||
+                    (b.BlockerId == x.UserId && b.BlockedId == memberId)));
         if (!string.IsNullOrWhiteSpace(category))
             candidates = candidates.Where(x => x.Category == category);
         if (availableToday)
@@ -46,7 +48,9 @@ public sealed class DiscoverController(ConnectoDbContext db, ICurrentUser curren
         var offering = await db.Offerings.AsNoTracking().Include(x => x.User).Include(x => x.Skills)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId != memberId &&
                 x.Status == OfferingStatus.Published && x.PricingBasis != PricingBasis.LegacyUnknown &&
-                x.Currency == "NZD", cancellationToken);
+                x.Currency == "NZD" &&
+                !db.MemberBlocks.Any(b => (b.BlockerId == memberId && b.BlockedId == x.UserId) ||
+                    (b.BlockerId == x.UserId && b.BlockedId == memberId)), cancellationToken);
         return offering is null ? NotFound() : Ok(DiscoveryOfferProjection.From(offering));
     }
 }
