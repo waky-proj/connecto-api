@@ -21,7 +21,7 @@ namespace Connecto.Application.Internal.Calculators
 
             if (offering.AvailableFrom is null)
             {
-                score.UpdateAvailability(AvailabilityWeight * 0.5m);
+                score.UpdateAvailability(0);
                 return;
             }
 

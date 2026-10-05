@@ -85,6 +85,19 @@ public class SqlServerAcceptanceTests
                 Assert.Equal(HttpStatusCode.Created, bNeed.StatusCode);
                 var bNeedId = (await bNeed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
+                // The same disposable rows exercise S3 SQL query translation and visibility.
+                var bSearch = await Json(b, $"/api/discover/offerings?query={suffix}");
+                Assert.Equal(1, bSearch.GetProperty("total").GetInt32());
+                Assert.Equal(aOfferingId, bSearch.GetProperty("offerings")[0].GetProperty("id").GetGuid());
+                Assert.Equal(0, (await Json(a, $"/api/discover/offerings?query={suffix}"))
+                    .GetProperty("total").GetInt32());
+                Assert.Equal(HttpStatusCode.OK,
+                    (await b.GetAsync($"/api/discover/offerings/{aOfferingId}")).StatusCode);
+                Assert.Equal(HttpStatusCode.NotFound,
+                    (await a.GetAsync($"/api/discover/offerings/{aOfferingId}")).StatusCode);
+                // Known nonremote Auckland/Wellington incompatibility is a hard exclusion.
+                Assert.Equal(0, (await Json(b, $"/api/needs/{bNeedId}/matches")).GetArrayLength());
+
                 var first = await Json(a, "/api/users/me/activity?page=1&pageSize=2");
                 var second = await Json(a, "/api/users/me/activity?page=2&pageSize=2");
                 Assert.Equal(3, first.GetProperty("needTotal").GetInt32());

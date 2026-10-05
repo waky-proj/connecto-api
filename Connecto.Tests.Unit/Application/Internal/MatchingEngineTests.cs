@@ -2,6 +2,7 @@
 using Connecto.Application.Internal.Calculators;
 using Connecto.Application.Internal.Impl;
 using Connecto.Domain.Entities;
+using Connecto.Domain.Matching;
 
 namespace Connecto.Tests.Unit.Application.Internal
 {
@@ -112,6 +113,19 @@ namespace Connecto.Tests.Unit.Application.Internal
             var result = _engine.Calculate(need, offering);
 
             Assert.True(result.Score.Total < 35);
+        }
+
+        [Fact]
+        public void Calculate_DisabledFactor_DoesNotExplainItAsScoreContribution()
+        {
+            var need = CreateNeed("Web Development", ["React"]);
+            var offering = CreateOffering("Web Development", ["React"]);
+            var weights = new MatchingWeights { Skills = 0m, Requirements = 55m };
+
+            var result = new MatchingEngine(calculators, weights).Calculate(need, offering);
+
+            Assert.Equal(0m, result.Score.Skills);
+            Assert.DoesNotContain("Strong skill match", result.Reasons);
         }
 
         [Fact]

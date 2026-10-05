@@ -16,7 +16,7 @@ dotnet test Connecto.Tests.Unit/Connecto.Tests.Unit.csproj --configuration F3Acc
 
 Use `Integrated Security=True` instead of username/password where appropriate. Keep connection strings out of committed files and shell transcripts. The `F3Acceptance` build configuration also avoids the normal Debug output when a local API process has those files open. Without both environment variables, the test is reported as **skipped**. A configured but unreachable or unmigrated database fails rather than skipping.
 
-The test verifies profile persistence across a newly created API host, the four editable fields, 201/2001-character validation, ignored identity/email/reputation assignments, separate A/B subject rows, own listing ownership, A-only paging across two pages, B isolation and forbidden access to A's Need/Offering matches. It also checks anonymous profile access. Signed JWTs are wired only into the in-process test host.
+The test verifies profile persistence across a newly created API host, the four editable fields, 201/2001-character validation, ignored identity/email/reputation assignments, separate A/B subject rows, own listing ownership, A-only paging across two pages, B isolation and forbidden access to A's Need/Offering matches. It also checks S3 persisted search query translation, self/detail visibility and a known location hard exclusion against SQL Server. Anonymous profile access is checked. Signed JWTs are wired only into the in-process test host.
 
 ## Fresh browser session
 
