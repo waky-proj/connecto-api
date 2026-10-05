@@ -39,13 +39,10 @@ jobs:
 
       - name: Check Cognito configuration
         env:
-          COGNITO_ISSUER: ${{ vars.COGNITO_ISSUER }}
-          COGNITO_APP_CLIENT_ID: ${{ vars.COGNITO_APP_CLIENT_ID }}
           DATABASE_SERVER: ${{ vars.DATABASE_SERVER }}
           DATABASE_NAME: ${{ vars.DATABASE_NAME }}
           DATABASE_CREDENTIALS_SECRET_ARN: ${{ vars.DATABASE_CREDENTIALS_SECRET_ARN }}
         run: |
-          test -n "$COGNITO_ISSUER" && test -n "$COGNITO_APP_CLIENT_ID"
           test -n "$DATABASE_SERVER" && test -n "$DATABASE_NAME" && test -n "$DATABASE_CREDENTIALS_SECRET_ARN"
 
       - name: Render task definition
@@ -56,8 +53,6 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ inputs.image_uri }}
           environment-variables: |
-            Cognito__Issuer=${{ vars.COGNITO_ISSUER }}
-            Cognito__Audience=${{ vars.COGNITO_APP_CLIENT_ID }}
             Database__Server=${{ vars.DATABASE_SERVER }}
             Database__Name=${{ vars.DATABASE_NAME }}
           secrets: |
