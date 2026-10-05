@@ -21,7 +21,7 @@ namespace Connecto.Application.Internal.Calculators
             if (string.IsNullOrWhiteSpace(need.Location) ||
                 string.IsNullOrWhiteSpace(offering.Location))
             {
-                score.UpdateLocation(LocationWeight * 0.5m);
+                score.UpdateLocation(0);
                 return;
             }
 

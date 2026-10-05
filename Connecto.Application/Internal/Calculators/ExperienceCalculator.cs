@@ -18,7 +18,7 @@ namespace Connecto.Application.Internal.Calculators
                 >= 5 => ExperienceWeight,
                 >= 3 => ExperienceWeight * 0.8m,
                 >= 1 => ExperienceWeight * 0.6m,
-                _ => ExperienceWeight * 0.3m
+                _ => 0m
             });
         }
 

@@ -245,6 +245,56 @@ public class AuthenticationTests
     private record Listing(Guid Id);
 
     [Fact]
+    public async Task Discovery_uses_persisted_public_details_and_excludes_self_and_paused_listings()
+    {
+        using var factory = new ApiFactory();
+        using var a = factory.CreateClient();
+        a.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var needResponse = await a.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Computer help", "Laptop setup", "Technology", ["Programming"], null, null,
+            "Auckland", null, "NZD", "negotiable"));
+        var need = await needResponse.Content.ReadFromJsonAsync<Listing>();
+        var ownResponse = await a.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Own laptop help", "Private", "Technology", ["Programming"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"));
+        var own = await ownResponse.Content.ReadFromJsonAsync<Listing>();
+
+        using var b = factory.CreateClient();
+        b.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "subject-2"));
+        await b.PatchAsJsonAsync("/api/users/me", new { firstName = "Casey", city = "Auckland" });
+        var publicResponse = await b.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Laptop setup", "Computer guidance", "Technology", ["Programming"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"));
+        var visible = await publicResponse.Content.ReadFromJsonAsync<Listing>();
+
+        var search = await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings?query=computer");
+        Assert.Equal(1, search.GetProperty("total").GetInt32());
+        var offer = search.GetProperty("offerings")[0];
+        Assert.Equal(visible!.Id, offer.GetProperty("id").GetGuid());
+        Assert.Equal("Casey", offer.GetProperty("providerName").GetString());
+        Assert.False(offer.TryGetProperty("authSubjectId", out _));
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync($"/api/discover/offerings/{own!.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await a.GetAsync($"/api/discover/offerings/{visible.Id}")).StatusCode);
+        var today = await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings?availableToday=true");
+        Assert.Equal(0, today.GetProperty("total").GetInt32()); // An unknown start date is not confirmed availability.
+
+        var matches = await a.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/needs/{need!.Id}/matches");
+        Assert.Equal(1, matches.GetArrayLength());
+        Assert.Equal(visible.Id, matches[0].GetProperty("offering").GetProperty("id").GetGuid());
+        Assert.Equal("s3-v1", matches[0].GetProperty("policyVersion").GetString());
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            (await db.Offerings.FindAsync(visible.Id))!.Status = OfferingStatus.Paused;
+            await db.SaveChangesAsync();
+        }
+        var afterPause = await a.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/discover/offerings?query=computer");
+        Assert.Equal(0, afterPause.GetProperty("total").GetInt32());
+        Assert.Equal(HttpStatusCode.NotFound, (await a.GetAsync($"/api/discover/offerings/{visible.Id}")).StatusCode);
+    }
+
+    [Fact]
     public async Task Listing_creation_ignores_spoofed_user_header_and_other_users_cannot_read_matches()
     {
         using var factory = new ApiFactory();

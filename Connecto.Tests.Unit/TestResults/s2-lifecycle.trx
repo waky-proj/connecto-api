@@ -1,0 +1,418 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="6455c10b-b046-412e-acc5-ae81420d06e2" name="waky1@AIMES 2026-10-04 22:51:58" runUser="AIMES\waky1" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-04T22:51:58.7810869+13:00" queuing="2026-10-04T22:51:58.7810873+13:00" start="2026-10-04T22:51:49.1156003+13:00" finish="2026-10-04T22:51:58.7979512+13:00" />
+  <TestSettings name="default" id="e2ffd5bb-c2de-4d77-887f-9a4429a33a0e">
+    <Deployment runDeploymentRoot="waky1_AIMES_2026-10-04_22_51_58" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b3fad8be-36ec-495c-bc66-72d797433fe4" testId="1b708865-5f78-dd4d-0015-d2f3adb220cb" testName="Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server" computerName="AIMES" duration="00:00:07.4189186" startTime="2026-10-04T22:51:51.0826404+13:00" endTime="2026-10-04T22:51:58.5402503+13:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b3fad8be-36ec-495c-bc66-72d797433fe4">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: OK&#xD;
+Actual:   Conflict</Message>
+          <StackTrace>   at Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server() in C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Tests.Unit\Authentication\SqlServerAcceptanceTests.cs:line 112&#xD;
+   at Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server() in C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Tests.Unit\Authentication\SqlServerAcceptanceTests.cs:line 169&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server" storage="c:\users\waky1\onedrive\documents\personal\connecto\connecto-api\connecto.tests.unit\bin\f3acceptance\net10.0\connecto.tests.unit.dll" id="1b708865-5f78-dd4d-0015-d2f3adb220cb">
+      <Execution id="b3fad8be-36ec-495c-bc66-72d797433fe4" />
+      <TestMethod codeBase="C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Tests.Unit\bin\F3Acceptance\net10.0\Connecto.Tests.Unit.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests" name="Profile_ownership_activity_and_fresh_api_host_use_sql_server" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1b708865-5f78-dd4d-0015-d2f3adb220cb" executionId="b3fad8be-36ec-495c-bc66-72d797433fe4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v4.0.0+05679a7ab5 (64-bit .NET 10.0.12)&#xD;
+[xUnit.net 00:00:00.24]   Discovering: Connecto.Tests.Unit&#xD;
+[xUnit.net 00:00:00.41]   Discovered:  Connecto.Tests.Unit&#xD;
+[xUnit.net 00:00:00.45]   Starting:    Connecto.Tests.Unit&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Development&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Api&#xD;
+warn: Microsoft.EntityFrameworkCore.Model.Validation[30000]&#xD;
+      No store type was specified for the decimal property 'ReputationScore' on entity type 'Offering'. This will cause values to be silently truncated if they do not fit in the default precision and scale. Explicitly specify the SQL server column type that can accommodate all the values in 'OnModelCreating' using 'HasColumnType', specify precision and scale using 'HasPrecision', or configure a value converter using 'HasConversion'.&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (50ms) [Parameters=[], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT 1&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT 1&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (45ms) [Parameters=[], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (34ms) [Parameters=[], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [MigrationId], [ProductVersion]&#xD;
+      FROM [__EFMigrationsHistory]&#xD;
+      ORDER BY [MigrationId];&#xD;
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]&#xD;
+      Failed to determine the https port for redirect.&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (52ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (18ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 300), @p2='?' (Size = 128), @p3='?' (Size = 2000), @p4='?' (Size = 200), @p5='?' (Size = 200), @p6='?' (Size = 4000), @p7='?' (Size = 200), @p8='?' (Size = 200), @p9='?' (Size = 200), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET IMPLICIT_TRANSACTIONS OFF;&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Users] ([Id], [Address], [AuthSubjectId], [Bio], [City], [Country], [Email], [FirstName], [LastName], [MiddleName], [ReputationScore], [VerificationStatus])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Size = 300), @p2='?' (Size = 128), @p3='?' (Size = 2000), @p4='?' (Size = 200), @p5='?' (Size = 200), @p6='?' (Size = 4000), @p7='?' (Size = 200), @p8='?' (Size = 200), @p9='?' (Size = 200), @p10='?' (DbType = Int32), @p11='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET IMPLICIT_TRANSACTIONS OFF;&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Users] ([Id], [Address], [AuthSubjectId], [Bio], [City], [Country], [Email], [FirstName], [LastName], [MiddleName], [ReputationScore], [VerificationStatus])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (8ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (10ms) [Parameters=[@p4='?' (DbType = Guid), @p0='?' (Size = 2000), @p1='?' (Size = 200), @p2='?' (Size = 200), @p3='?' (Size = 200)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET IMPLICIT_TRANSACTIONS OFF;&#xD;
+      SET NOCOUNT ON;&#xD;
+      UPDATE [Users] SET [Bio] = @p0, [City] = @p1, [FirstName] = @p2, [LastName] = @p3&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p4;&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@p2='?' (DbType = Guid), @p0='?' (Size = 200), @p1='?' (Size = 200)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET IMPLICIT_TRANSACTIONS OFF;&#xD;
+      SET NOCOUNT ON;&#xD;
+      UPDATE [Users] SET [City] = @p0, [FirstName] = @p1&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p2;&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (1ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (2ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(1) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[Id] = @id&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (20ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p2='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p3='?' (Size = 100), @p4='?' (Size = 3), @p5='?' (DbType = DateTime2), @p6='?' (Size = 4000), @p7='?' (Precision = 9) (Scale = 2) (DbType = Decimal), @p8='?' (Size = 200), @p9='?' (DbType = Int32), @p10='?' (DbType = Boolean), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (Size = 200), @p14='?' (DbType = Guid), @p15='?' (DbType = Guid), @p16='?' (DbType = Guid), @p17='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Needs] ([Id], [BudgetMax], [BudgetMin], [Category], [Currency], [Deadline], [Description], [EstimatedHours], [Location], [PricingBasis], [RemoteAllowed], [Revision], [Status], [Title], [UserId])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14);&#xD;
+      INSERT INTO [NeedSkills] ([Id], [NeedId], [Skill])&#xD;
+      VALUES (@p15, @p16, @p17);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(1) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[Id] = @id&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p2='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p3='?' (Size = 100), @p4='?' (Size = 3), @p5='?' (DbType = DateTime2), @p6='?' (Size = 4000), @p7='?' (Precision = 9) (Scale = 2) (DbType = Decimal), @p8='?' (Size = 200), @p9='?' (DbType = Int32), @p10='?' (DbType = Boolean), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (Size = 200), @p14='?' (DbType = Guid), @p15='?' (DbType = Guid), @p16='?' (DbType = Guid), @p17='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Needs] ([Id], [BudgetMax], [BudgetMin], [Category], [Currency], [Deadline], [Description], [EstimatedHours], [Location], [PricingBasis], [RemoteAllowed], [Revision], [Status], [Title], [UserId])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14);&#xD;
+      INSERT INTO [NeedSkills] ([Id], [NeedId], [Skill])&#xD;
+      VALUES (@p15, @p16, @p17);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (2ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(1) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[Id] = @id&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p2='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p3='?' (Size = 100), @p4='?' (Size = 3), @p5='?' (DbType = DateTime2), @p6='?' (Size = 4000), @p7='?' (Precision = 9) (Scale = 2) (DbType = Decimal), @p8='?' (Size = 200), @p9='?' (DbType = Int32), @p10='?' (DbType = Boolean), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (Size = 200), @p14='?' (DbType = Guid), @p15='?' (DbType = Guid), @p16='?' (DbType = Guid), @p17='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Needs] ([Id], [BudgetMax], [BudgetMin], [Category], [Currency], [Deadline], [Description], [EstimatedHours], [Location], [PricingBasis], [RemoteAllowed], [Revision], [Status], [Title], [UserId])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14);&#xD;
+      INSERT INTO [NeedSkills] ([Id], [NeedId], [Skill])&#xD;
+      VALUES (@p15, @p16, @p17);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(1) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[Id] = @id&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (17ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = DateTime2), @p2='?' (DbType = DateTime2), @p3='?' (Size = 100), @p4='?' (Size = 3), @p5='?' (Size = 4000), @p6='?' (Precision = 9) (Scale = 2) (DbType = Decimal), @p7='?' (DbType = Int32), @p8='?' (Size = 200), @p9='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p10='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p11='?' (DbType = Int32), @p12='?' (DbType = Boolean), @p13='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p14='?' (DbType = Int32), @p15='?' (DbType = Int32), @p16='?' (Size = 200), @p17='?' (DbType = Guid), @p18='?' (DbType = Guid), @p19='?' (DbType = Guid), @p20='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Offerings] ([Id], [AvailableFrom], [AvailableUntil], [Category], [Currency], [Description], [EstimatedHours], [ExperienceYears], [Location], [PriceMax], [PriceMin], [PricingBasis], [RemoteAvailable], [ReputationScore], [Revision], [Status], [Title], [UserId])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17);&#xD;
+      INSERT INTO [OfferingSkills] ([Id], [OfferingId], [Skill])&#xD;
+      VALUES (@p18, @p19, @p20);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (2ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(1) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[Id] = @id&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (7ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p2='?' (Precision = 18) (Scale = 2) (DbType = Decimal), @p3='?' (Size = 100), @p4='?' (Size = 3), @p5='?' (DbType = DateTime2), @p6='?' (Size = 4000), @p7='?' (Precision = 9) (Scale = 2) (DbType = Decimal), @p8='?' (Size = 200), @p9='?' (DbType = Int32), @p10='?' (DbType = Boolean), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?' (Size = 200), @p14='?' (DbType = Guid), @p15='?' (DbType = Guid), @p16='?' (DbType = Guid), @p17='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      INSERT INTO [Needs] ([Id], [BudgetMax], [BudgetMin], [Category], [Currency], [Deadline], [Description], [EstimatedHours], [Location], [PricingBasis], [RemoteAllowed], [Revision], [Status], [Title], [UserId])&#xD;
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14);&#xD;
+      INSERT INTO [NeedSkills] ([Id], [NeedId], [Skill])&#xD;
+      VALUES (@p15, @p16, @p17);&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Needs] AS [n]&#xD;
+      WHERE [n].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Offerings] AS [o]&#xD;
+      WHERE [o].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (24ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32), @p2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [n1].[Id], [n1].[Title], [n1].[Description], [n1].[Category], [n1].[BudgetMin], [n1].[BudgetMax], [n1].[Currency], [n1].[PricingBasis], [n1].[EstimatedHours], [n1].[Revision], [n1].[Location], [n1].[Deadline], [n1].[Status], [n0].[Skill], [n0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [n].[Id], [n].[Title], [n].[Description], [n].[Category], [n].[BudgetMin], [n].[BudgetMax], [n].[Currency], [n].[PricingBasis], [n].[EstimatedHours], [n].[Revision], [n].[Location], [n].[Deadline], [n].[Status]&#xD;
+          FROM [Needs] AS [n]&#xD;
+          WHERE [n].[UserId] = @memberId&#xD;
+          ORDER BY [n].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p2 ROWS ONLY&#xD;
+      ) AS [n1]&#xD;
+      LEFT JOIN [NeedSkills] AS [n0] ON [n1].[Id] = [n0].[NeedId]&#xD;
+      ORDER BY [n1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (9ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32), @p2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [o1].[Id], [o1].[Title], [o1].[Description], [o1].[Category], [o1].[PriceMin], [o1].[PriceMax], [o1].[Currency], [o1].[PricingBasis], [o1].[EstimatedHours], [o1].[Revision], [o1].[Location], [o1].[AvailableFrom], [o1].[AvailableUntil], [o1].[RemoteAvailable], [o1].[ExperienceYears], [o1].[Status], [o0].[Skill], [o0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [o].[Id], [o].[Title], [o].[Description], [o].[Category], [o].[PriceMin], [o].[PriceMax], [o].[Currency], [o].[PricingBasis], [o].[EstimatedHours], [o].[Revision], [o].[Location], [o].[AvailableFrom], [o].[AvailableUntil], [o].[RemoteAvailable], [o].[ExperienceYears], [o].[Status]&#xD;
+          FROM [Offerings] AS [o]&#xD;
+          WHERE [o].[UserId] = @memberId&#xD;
+          ORDER BY [o].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p2 ROWS ONLY&#xD;
+      ) AS [o1]&#xD;
+      LEFT JOIN [OfferingSkills] AS [o0] ON [o1].[Id] = [o0].[OfferingId]&#xD;
+      ORDER BY [o1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Needs] AS [n]&#xD;
+      WHERE [n].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Offerings] AS [o]&#xD;
+      WHERE [o].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (14ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [n1].[Id], [n1].[Title], [n1].[Description], [n1].[Category], [n1].[BudgetMin], [n1].[BudgetMax], [n1].[Currency], [n1].[PricingBasis], [n1].[EstimatedHours], [n1].[Revision], [n1].[Location], [n1].[Deadline], [n1].[Status], [n0].[Skill], [n0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [n].[Id], [n].[Title], [n].[Description], [n].[Category], [n].[BudgetMin], [n].[BudgetMax], [n].[Currency], [n].[PricingBasis], [n].[EstimatedHours], [n].[Revision], [n].[Location], [n].[Deadline], [n].[Status]&#xD;
+          FROM [Needs] AS [n]&#xD;
+          WHERE [n].[UserId] = @memberId&#xD;
+          ORDER BY [n].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p ROWS ONLY&#xD;
+      ) AS [n1]&#xD;
+      LEFT JOIN [NeedSkills] AS [n0] ON [n1].[Id] = [n0].[NeedId]&#xD;
+      ORDER BY [n1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (5ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [o1].[Id], [o1].[Title], [o1].[Description], [o1].[Category], [o1].[PriceMin], [o1].[PriceMax], [o1].[Currency], [o1].[PricingBasis], [o1].[EstimatedHours], [o1].[Revision], [o1].[Location], [o1].[AvailableFrom], [o1].[AvailableUntil], [o1].[RemoteAvailable], [o1].[ExperienceYears], [o1].[Status], [o0].[Skill], [o0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [o].[Id], [o].[Title], [o].[Description], [o].[Category], [o].[PriceMin], [o].[PriceMax], [o].[Currency], [o].[PricingBasis], [o].[EstimatedHours], [o].[Revision], [o].[Location], [o].[AvailableFrom], [o].[AvailableUntil], [o].[RemoteAvailable], [o].[ExperienceYears], [o].[Status]&#xD;
+          FROM [Offerings] AS [o]&#xD;
+          WHERE [o].[UserId] = @memberId&#xD;
+          ORDER BY [o].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p ROWS ONLY&#xD;
+      ) AS [o1]&#xD;
+      LEFT JOIN [OfferingSkills] AS [o0] ON [o1].[Id] = [o0].[OfferingId]&#xD;
+      ORDER BY [o1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (3ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Needs] AS [n]&#xD;
+      WHERE [n].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (2ms) [Parameters=[@memberId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT COUNT(*)&#xD;
+      FROM [Offerings] AS [o]&#xD;
+      WHERE [o].[UserId] = @memberId&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (8ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32), @p2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [n1].[Id], [n1].[Title], [n1].[Description], [n1].[Category], [n1].[BudgetMin], [n1].[BudgetMax], [n1].[Currency], [n1].[PricingBasis], [n1].[EstimatedHours], [n1].[Revision], [n1].[Location], [n1].[Deadline], [n1].[Status], [n0].[Skill], [n0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [n].[Id], [n].[Title], [n].[Description], [n].[Category], [n].[BudgetMin], [n].[BudgetMax], [n].[Currency], [n].[PricingBasis], [n].[EstimatedHours], [n].[Revision], [n].[Location], [n].[Deadline], [n].[Status]&#xD;
+          FROM [Needs] AS [n]&#xD;
+          WHERE [n].[UserId] = @memberId&#xD;
+          ORDER BY [n].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p2 ROWS ONLY&#xD;
+      ) AS [n1]&#xD;
+      LEFT JOIN [NeedSkills] AS [n0] ON [n1].[Id] = [n0].[NeedId]&#xD;
+      ORDER BY [n1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (7ms) [Parameters=[@memberId='?' (DbType = Guid), @p='?' (DbType = Int32), @p2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [o1].[Id], [o1].[Title], [o1].[Description], [o1].[Category], [o1].[PriceMin], [o1].[PriceMax], [o1].[Currency], [o1].[PricingBasis], [o1].[EstimatedHours], [o1].[Revision], [o1].[Location], [o1].[AvailableFrom], [o1].[AvailableUntil], [o1].[RemoteAvailable], [o1].[ExperienceYears], [o1].[Status], [o0].[Skill], [o0].[Id]&#xD;
+      FROM (&#xD;
+          SELECT [o].[Id], [o].[Title], [o].[Description], [o].[Category], [o].[PriceMin], [o].[PriceMax], [o].[Currency], [o].[PricingBasis], [o].[EstimatedHours], [o].[Revision], [o].[Location], [o].[AvailableFrom], [o].[AvailableUntil], [o].[RemoteAvailable], [o].[ExperienceYears], [o].[Status]&#xD;
+          FROM [Offerings] AS [o]&#xD;
+          WHERE [o].[UserId] = @memberId&#xD;
+          ORDER BY [o].[Id]&#xD;
+          OFFSET @p ROWS FETCH NEXT @p2 ROWS ONLY&#xD;
+      ) AS [o1]&#xD;
+      LEFT JOIN [OfferingSkills] AS [o0] ON [o1].[Id] = [o0].[OfferingId]&#xD;
+      ORDER BY [o1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (7ms) [Parameters=[@id='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [n1].[Id], [n1].[BudgetMax], [n1].[BudgetMin], [n1].[Category], [n1].[Currency], [n1].[Deadline], [n1].[Description], [n1].[EstimatedHours], [n1].[Location], [n1].[PricingBasis], [n1].[RemoteAllowed], [n1].[Revision], [n1].[Status], [n1].[Title], [n1].[UserId], [n0].[Id], [n0].[NeedId], [n0].[Skill]&#xD;
+      FROM (&#xD;
+          SELECT TOP(1) [n].[Id], [n].[BudgetMax], [n].[BudgetMin], [n].[Category], [n].[Currency], [n].[Deadline], [n].[Description], [n].[EstimatedHours], [n].[Location], [n].[PricingBasis], [n].[RemoteAllowed], [n].[Revision], [n].[Status], [n].[Title], [n].[UserId]&#xD;
+          FROM [Needs] AS [n]&#xD;
+          WHERE [n].[Id] = @id&#xD;
+      ) AS [n1]&#xD;
+      LEFT JOIN [NeedSkills] AS [n0] ON [n1].[Id] = [n0].[NeedId]&#xD;
+      ORDER BY [n1].[Id]&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@subject='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT TOP(2) [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subject&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (17ms) [Parameters=[@p0='?' (DbType = Guid), @p3='?' (DbType = Guid), @p1='?' (DbType = Guid), @p2='?' (DbType = Int32), @p7='?' (DbType = Guid), @p4='?' (Size = 4000), @p5='?' (DbType = Int32), @p8='?' (DbType = Int32), @p6='?' (Size = 200)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      DELETE FROM [NeedSkills]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p0;&#xD;
+      UPDATE [NeedSkills] SET [NeedId] = @p1, [Skill] = @p2&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p3;&#xD;
+      UPDATE [Needs] SET [Description] = @p4, [Revision] = @p5, [Title] = @p6&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p7 AND [Revision] = @p8;&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application started. Press Ctrl+C to shut down.&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Hosting environment: Development&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Content root path: C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Api&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (6ms) [Parameters=[@subjectA='?' (Size = 128), @subjectB='?' (Size = 128)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [u].[Id], [u].[Address], [u].[AuthSubjectId], [u].[Bio], [u].[City], [u].[Country], [u].[Email], [u].[FirstName], [u].[LastName], [u].[MiddleName], [u].[ReputationScore], [u].[VerificationStatus]&#xD;
+      FROM [Users] AS [u]&#xD;
+      WHERE [u].[AuthSubjectId] = @subjectA OR [u].[AuthSubjectId] = @subjectB&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (7ms) [Parameters=[@ids1='?' (DbType = Guid), @ids2='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [n].[Id], [n].[BudgetMax], [n].[BudgetMin], [n].[Category], [n].[Currency], [n].[Deadline], [n].[Description], [n].[EstimatedHours], [n].[Location], [n].[PricingBasis], [n].[RemoteAllowed], [n].[Revision], [n].[Status], [n].[Title], [n].[UserId]&#xD;
+      FROM [Needs] AS [n]&#xD;
+      WHERE [n].[UserId] IN (@ids1, @ids2)&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (4ms) [Parameters=[@ids1='?' (DbType = Guid), @ids2='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SELECT [o].[Id], [o].[AvailableFrom], [o].[AvailableUntil], [o].[Category], [o].[Currency], [o].[Description], [o].[EstimatedHours], [o].[ExperienceYears], [o].[Location], [o].[PriceMax], [o].[PriceMin], [o].[PricingBasis], [o].[RemoteAvailable], [o].[ReputationScore], [o].[Revision], [o].[Status], [o].[Title], [o].[UserId]&#xD;
+      FROM [Offerings] AS [o]&#xD;
+      WHERE [o].[UserId] IN (@ids1, @ids2)&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (42ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Int32), @p2='?' (DbType = Guid), @p3='?' (DbType = Int32), @p4='?' (DbType = Guid), @p5='?' (DbType = Int32), @p6='?' (DbType = Guid), @p7='?' (DbType = Int32), @p8='?' (DbType = Guid), @p9='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      DELETE FROM [Needs]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p0 AND [Revision] = @p1;&#xD;
+      DELETE FROM [Needs]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p2 AND [Revision] = @p3;&#xD;
+      DELETE FROM [Needs]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p4 AND [Revision] = @p5;&#xD;
+      DELETE FROM [Needs]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p6 AND [Revision] = @p7;&#xD;
+      DELETE FROM [Offerings]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p8 AND [Revision] = @p9;&#xD;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]&#xD;
+      Executed DbCommand (12ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']&#xD;
+      SET NOCOUNT ON;&#xD;
+      DELETE FROM [Users]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p0;&#xD;
+      DELETE FROM [Users]&#xD;
+      OUTPUT 1&#xD;
+      WHERE [Id] = @p1;&#xD;
+info: Microsoft.Hosting.Lifetime[0]&#xD;
+      Application is shutting down...&#xD;
+[xUnit.net 00:00:07.96]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:07.96]       Expected: OK&#xD;
+[xUnit.net 00:00:07.96]       Actual:   Conflict&#xD;
+[xUnit.net 00:00:07.96]       Stack Trace:&#xD;
+[xUnit.net 00:00:07.96]         C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Tests.Unit\Authentication\SqlServerAcceptanceTests.cs(112,0): at Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server()&#xD;
+[xUnit.net 00:00:07.96]         C:\Users\waky1\OneDrive\Documents\Personal\Connecto\connecto-api\Connecto.Tests.Unit\Authentication\SqlServerAcceptanceTests.cs(169,0): at Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server()&#xD;
+[xUnit.net 00:00:07.96]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:07.99]   Finished:    Connecto.Tests.Unit&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="AIMES" outcome="Error" timestamp="2026-10-04T22:51:58.5474902+13:00">
+        <Text>[xUnit.net 00:00:07.95]     Connecto.Tests.Unit.Authentication.SqlServerAcceptanceTests.Profile_ownership_activity_and_fresh_api_host_use_sql_server [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

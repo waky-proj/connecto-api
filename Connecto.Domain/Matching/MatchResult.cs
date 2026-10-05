@@ -16,5 +16,9 @@
         public MatchScore Score { get; set; } = Score;
 
         public IReadOnlyCollection<string> Reasons { get; set; } = Reasons;
+
+        public IReadOnlyCollection<string> Unknowns { get; set; } = [];
+
+        public string PolicyVersion { get; set; } = "s3-v1";
     }
 }

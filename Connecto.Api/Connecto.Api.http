@@ -1,4 +1,4 @@
-@Connecto.Api_HostAddress = http://localhost:5247
+@Connecto.Api_HostAddress = http://127.0.0.1:5247
 
 GET {{Connecto.Api_HostAddress}}
 Accept: application/json

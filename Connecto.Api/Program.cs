@@ -8,6 +8,8 @@ using Connecto.Infrastructure.Services.Data;
 using Connecto.Infrastructure.Services.Impl;
 using Microsoft.EntityFrameworkCore;
 using Connecto.Api.Authentication;
+using Connecto.Domain.Matching;
+using Connecto.Application.Internal.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCognitoAuthentication(builder.Configuration);
@@ -24,7 +26,9 @@ builder.Services
     .AddOptions<OpenAIOptions>()
     .Bind(builder.Configuration.GetSection("OpenAI"));
 
-builder.Services.AddTransient<IMatchingEngine, MatchingEngine>();
+var matchingWeights = builder.Configuration.GetSection("Matching:Weights").Get<MatchingWeights>() ?? new MatchingWeights();
+MatchingWeightsValidator.Validate(matchingWeights);
+builder.Services.AddSingleton(matchingWeights);
 builder.Services.AddScoped<INeedService, NeedService>();
 builder.Services.AddScoped<IOfferingService, OfferingService>();
 builder.Services.AddScoped<IMatchService, MatchService>();

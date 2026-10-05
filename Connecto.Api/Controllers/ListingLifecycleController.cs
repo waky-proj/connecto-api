@@ -39,8 +39,7 @@ public sealed class ListingLifecycleController(
         if (!permitted.Contains(need.Status)) return Conflict(new { title = "Listing state conflict" });
         need.Status = target;
         need.Revision++;
-        try { await needs.Update(need); }
-        catch (DbUpdateConcurrencyException) { return Conflict(new { title = "Listing revision conflict" }); }
+        if (!await needs.Update(need, request.Revision)) return Conflict(new { title = "Listing revision conflict" });
         return Ok(new { need.Id, need.Status, need.Revision });
     }
 
@@ -54,8 +53,7 @@ public sealed class ListingLifecycleController(
         if (!permitted.Contains(offering.Status)) return Conflict(new { title = "Listing state conflict" });
         offering.Status = target;
         offering.Revision++;
-        try { await offerings.Update(offering); }
-        catch (DbUpdateConcurrencyException) { return Conflict(new { title = "Listing revision conflict" }); }
+        if (!await offerings.Update(offering, request.Revision)) return Conflict(new { title = "Listing revision conflict" });
         return Ok(new { offering.Id, offering.Status, offering.Revision });
     }
 }

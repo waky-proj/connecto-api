@@ -32,10 +32,24 @@ namespace Connecto.Infrastructure.Services.Impl
                     .Include(x => x.Skills);
         }
 
-        public async Task Update(Offering offering)
+        public async Task<bool> Update(Offering offering, int expectedRevision)
         {
-            dbContext.Offerings.Update(offering);
+            var changed = await dbContext.Offerings.Where(item => item.Id == offering.Id && item.Revision == expectedRevision)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Title, offering.Title).SetProperty(item => item.Description, offering.Description)
+                    .SetProperty(item => item.Category, offering.Category).SetProperty(item => item.PriceMin, offering.PriceMin)
+                    .SetProperty(item => item.PriceMax, offering.PriceMax).SetProperty(item => item.Currency, offering.Currency)
+                    .SetProperty(item => item.PricingBasis, offering.PricingBasis).SetProperty(item => item.EstimatedHours, offering.EstimatedHours)
+                    .SetProperty(item => item.Location, offering.Location).SetProperty(item => item.RemoteAvailable, offering.RemoteAvailable)
+                    .SetProperty(item => item.AvailableFrom, offering.AvailableFrom).SetProperty(item => item.AvailableUntil, offering.AvailableUntil)
+                    .SetProperty(item => item.ExperienceYears, offering.ExperienceYears).SetProperty(item => item.Status, offering.Status)
+                    .SetProperty(item => item.Revision, offering.Revision));
+            if (changed != 1) return false;
+            dbContext.ChangeTracker.Clear();
+            await dbContext.OfferingSkills.Where(item => item.OfferingId == offering.Id).ExecuteDeleteAsync();
+            dbContext.OfferingSkills.AddRange(offering.Skills);
             await dbContext.SaveChangesAsync();
+            return true;
         }
 
         public async Task Delete(Offering offering)

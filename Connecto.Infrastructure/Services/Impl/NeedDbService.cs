@@ -26,10 +26,22 @@ namespace Connecto.Infrastructure.Services.Impl
                 .ToListAsync();
         }
 
-        public async Task Update(Need need)
+        public async Task<bool> Update(Need need, int expectedRevision)
         {
-            dbContext.Needs.Update(need);
+            var changed = await dbContext.Needs.Where(item => item.Id == need.Id && item.Revision == expectedRevision)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Title, need.Title).SetProperty(item => item.Description, need.Description)
+                    .SetProperty(item => item.Category, need.Category).SetProperty(item => item.BudgetMin, need.BudgetMin)
+                    .SetProperty(item => item.BudgetMax, need.BudgetMax).SetProperty(item => item.Currency, need.Currency)
+                    .SetProperty(item => item.PricingBasis, need.PricingBasis).SetProperty(item => item.EstimatedHours, need.EstimatedHours)
+                    .SetProperty(item => item.Location, need.Location).SetProperty(item => item.Deadline, need.Deadline)
+                    .SetProperty(item => item.Status, need.Status).SetProperty(item => item.Revision, need.Revision));
+            if (changed != 1) return false;
+            dbContext.ChangeTracker.Clear();
+            await dbContext.NeedSkills.Where(item => item.NeedId == need.Id).ExecuteDeleteAsync();
+            dbContext.NeedSkills.AddRange(need.Skills);
             await dbContext.SaveChangesAsync();
+            return true;
         }
 
         public async Task Delete(Need need)

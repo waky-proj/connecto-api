@@ -27,20 +27,20 @@ namespace Connecto.Application.Internal.Calculators
 
                 if (need.PricingBasis is PricingBasis.Free or PricingBasis.Negotiable)
                 {
-                    score.UpdateBudget(BudgetWeight * 0.5m);
+                    score.UpdateBudget(BudgetWeight);
                     return;
                 }
             }
 
             if (need.BudgetMin is null && need.BudgetMax is null)
             {
-                score.UpdateBudget(BudgetWeight);
+                score.UpdateBudget(0);
                 return;
             }
 
             if (offering.PriceMin is null && offering.PriceMax is null)
             {
-                score.UpdateBudget(BudgetWeight * 0.5m);
+                score.UpdateBudget(0);
                 return;
             }
 

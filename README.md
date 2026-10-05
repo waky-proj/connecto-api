@@ -8,7 +8,7 @@ This repository contains the .NET 10 API, application/domain projects, EF Core S
 
 The opt-in SQL Server and fresh-browser F3 acceptance commands and prerequisites are in [F3_ACCEPTANCE.md](F3_ACCEPTANCE.md). A skipped path is not acceptance evidence.
 
-Implemented: Cognito access-token authentication and subject-based user provisioning, self-profile retrieval/allowlisted editing, paginated own activity, Need/Offering creation and owner-authorised Need matching. Match mapping is not a persistent accepted-agreement lifecycle. Discovery/preview and Offering matches include placeholders. AI parsing is unavailable: authenticated parse routes return 503 ProblemDetails with manual-entry guidance, and structured posting starts and works without an AI key. Setting a key does not enable extraction; the vendor adapter is not implemented. Matching-weight defaults are not wired into MatchingEngine. Connections, Engagements, persistent chat, Feedback, Media, Safety cases and measurement remain future work.
+Implemented locally: Cognito access-token authentication and subject-based user provisioning, self-profile retrieval/allowlisted editing, paginated own activity, Need/Offering creation, owner-authorised Need matching, authenticated persisted Offering search/detail and configured scoring weights. Match mapping is not a persistent accepted-agreement lifecycle. Match preview and Offering matches remain placeholders. AI parsing is unavailable: authenticated parse routes return 503 ProblemDetails with manual-entry guidance, and structured posting starts and works without an AI key. Setting a key does not enable extraction; the vendor adapter is not implemented. The related-wording vocabulary is small and awaits owner-reviewed acceptance fixtures. Connections, Engagements, persistent chat, Feedback, Media, Safety cases and measurement remain future work.
 
 ## Current HTTP contracts
 
@@ -20,10 +20,11 @@ Implemented: Cognito access-token authentication and subject-based user provisio
 | GET /api/users/me/activity | Own Needs/Offerings; page >= 1, pageSize 1–100, separate totals |
 | POST /api/needs | Member-owned Need creation |
 | POST /api/offerings | Member-owned Offering creation |
-| GET /api/needs/{needId}/matches | Owner-authorised matching |
+| GET /api/needs/{needId}/matches | Owner-authorised matching with public Offering details, factor scores, reasons and policy version |
+| GET /api/discover/offerings | Authenticated, paginated published Offering search; optional query, category and availableToday filters |
+| GET /api/discover/offerings/{id} | Authenticated public Offering detail with self/inactive/legacy visibility exclusions |
 | GET /api/offerings/{id}/matches | Owner check then placeholder response |
 | GET /api/matches/preview | Placeholder response |
-| POST /api/discover/needs | Placeholder response |
 | POST /api/ai/parse/need or /offering | Authenticated 503 application/problem+json; manual entry remains available |
 
 There is no custom password/user-create route. /users/me contains private self-profile fields; public profiles need separate DTOs. Use request/controller types for exact payloads. Payments, escrow and delivery logistics remain outside initial proposed scope.

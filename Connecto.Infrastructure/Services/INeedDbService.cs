@@ -8,7 +8,7 @@ namespace Connecto.Infrastructure.Services
         Task Add(Need need);
         Task<Need?> GetById(Guid id);
         Task<List<Need>> GetAll();
-        Task Update(Need need);
+        Task<bool> Update(Need need, int expectedRevision);
         Task Delete(Need need);
     }
 }

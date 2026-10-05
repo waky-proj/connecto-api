@@ -6,7 +6,9 @@ namespace Connecto.Application.Internal.Validators
     {
         public static void Validate(MatchingWeights weights)
         {
-            if (weights.Total != 100m)
+            if (string.IsNullOrWhiteSpace(weights.Version) || weights.Total != 100m || new[] { weights.Skills, weights.Requirements,
+                weights.Availability, weights.Budget, weights.Location, weights.Experience,
+                weights.Reputation }.Any(value => value < 0m))
             {
                 throw new InvalidOperationException(
                     $"Matching weights must total 100. Actual: {weights.Total}");

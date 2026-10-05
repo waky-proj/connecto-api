@@ -5,6 +5,7 @@
     /// </summary>
     public sealed record MatchingWeights
     {
+        public string Version { get; init; } = "s3-v1";
         public decimal Skills { get; init; } = 35m;
         public decimal Requirements { get; init; } = 20m;
         public decimal Availability { get; init; } = 15m;
