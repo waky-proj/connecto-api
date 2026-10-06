@@ -7,7 +7,7 @@ public sealed record DiscoveryOfferDto(
     string? ProviderName, string? Location, bool RemoteAvailable,
     decimal? PriceMin, decimal? PriceMax, string? Currency, PricingBasis PricingBasis,
     decimal? EstimatedHours, DateTime? AvailableFrom, DateTime? AvailableUntil,
-    int ExperienceYears);
+    int ExperienceYears, int Revision);
 
 public static class DiscoveryOfferProjection
 {
@@ -22,6 +22,6 @@ public static class DiscoveryOfferProjection
             name.Length > 0 ? name : null, offering.Location, offering.RemoteAvailable,
             offering.PriceMin, offering.PriceMax, offering.Currency, offering.PricingBasis,
             offering.EstimatedHours, offering.AvailableFrom, offering.AvailableUntil,
-            offering.ExperienceYears);
+            offering.ExperienceYears, offering.Revision);
     }
 }
