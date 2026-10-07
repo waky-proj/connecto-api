@@ -21,6 +21,8 @@ namespace Connecto.Infrastructure.Services.Data
         public DbSet<JourneyEvent> JourneyEvents => Set<JourneyEvent>();
         public DbSet<ConnectionRequest> ConnectionRequests => Set<ConnectionRequest>();
         public DbSet<Engagement> Engagements => Set<Engagement>();
+        public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
+        public DbSet<ConversationReceipt> ConversationReceipts => Set<ConversationReceipt>();
 
         public ConnectoDbContext(
             DbContextOptions<ConnectoDbContext> options)
@@ -68,6 +70,23 @@ namespace Connecto.Infrastructure.Services.Data
                 entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.RequesterId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<ConversationMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.ClientKey).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Text).HasMaxLength(2000).IsRequired();
+                entity.HasIndex(x => new { x.EngagementId, x.Id });
+                entity.HasIndex(x => new { x.EngagementId, x.SenderId, x.ClientKey }).IsUnique();
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<ConversationReceipt>(entity =>
+            {
+                entity.HasKey(x => new { x.EngagementId, x.MemberId });
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.MemberId).OnDelete(DeleteBehavior.NoAction);
             });
             modelBuilder.Entity<MemberBlock>(entity =>
             {

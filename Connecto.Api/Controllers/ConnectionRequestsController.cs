@@ -121,20 +121,46 @@ public sealed class ConnectionRequestsController(ConnectoDbContext db, ICurrentU
         if (request.Revision < 1 || string.IsNullOrWhiteSpace(key) || key.Length > 100)
             return BadRequest(new ProblemDetails { Title = "A request revision and idempotency key are required" });
 
+        try { return await AcceptCore(id, request.Revision, key, actor, cancellationToken); }
+        catch (Exception error) when (IsConcurrencyError(error))
+        {
+            return Conflict(new ProblemDetails { Title = "Request or Need changed during acceptance. Refresh the inbox." });
+        }
+    }
+
+    private static bool IsConcurrencyError(Exception error) =>
+        error is DbUpdateConcurrencyException ||
+        error is SqlException sql && sql.Number is 1205 or 2601 or 2627 or 3960 ||
+        error.InnerException is not null && IsConcurrencyError(error.InnerException);
+
+    private async Task<IActionResult> AcceptCore(Guid id, int revision, string key, Guid actor, CancellationToken cancellationToken)
+    {
+        var target = await db.ConnectionRequests.AsNoTracking()
+            .Where(x => x.Id == id && (x.SenderId == actor || x.RecipientId == actor))
+            .Select(x => new { x.NeedId, x.RecipientId }).SingleOrDefaultAsync(cancellationToken);
+        if (target is null) return NotFound();
+        if (target.RecipientId != actor) return Forbid();
         // SQL Server serializes the listing/capacity read with this write. The unique NeedId
         // index is the final protection when independent requests race for the same Need.
         await using var transaction = db.Database.IsRelational()
             ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken) : null;
+        if (transaction is not null)
+        {
+            // All accept attempts for a Need acquire this lock before reading
+            // request state or capacity, avoiding shared-to-exclusive deadlocks.
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [Needs] SET [Revision] = [Revision] WHERE [Id] = {target.NeedId}", cancellationToken);
+        }
         var item = await db.ConnectionRequests.SingleOrDefaultAsync(x => x.Id == id &&
             (x.SenderId == actor || x.RecipientId == actor), cancellationToken);
         if (item is null) return NotFound();
         if (item.RecipientId != actor) return Forbid();
         var existing = await db.Engagements.AsNoTracking().SingleOrDefaultAsync(x => x.ConnectionRequestId == id, cancellationToken);
         if (existing is not null)
-            return existing.IdempotencyKey == key && existing.AcceptedRequestRevision == request.Revision
+            return existing.IdempotencyKey == key && existing.AcceptedRequestRevision == revision
                 ? Ok(AgreementView(existing))
                 : Conflict(new ProblemDetails { Title = "Request was already accepted with different retry details" });
-        if (item.Status != "pending" || item.Revision != request.Revision)
+        if (item.Status != "pending" || item.Revision != revision)
             return Conflict(new ProblemDetails { Title = "Request changed. Refresh the inbox." });
 
         var need = await db.Needs.SingleAsync(x => x.Id == item.NeedId, cancellationToken);
@@ -158,26 +184,15 @@ public sealed class ConnectionRequestsController(ConnectoDbContext db, ICurrentU
             NeedRevision = item.NeedRevision, OfferingRevision = item.OfferingRevision,
             Terms = item.Terms, Currency = item.Currency, PricingBasis = item.PricingBasis,
             AgreedAmount = item.ProposedAmount, IdempotencyKey = key,
-            AcceptedRequestRevision = request.Revision
+            AcceptedRequestRevision = revision
         };
         item.Status = "accepted";
         item.PendingPairKey = null;
         item.Revision++;
         item.DecidedAt = agreement.AcceptedAt;
         db.Engagements.Add(agreement);
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-        }
-        catch (DbUpdateException)
-        {
-            return Conflict(new ProblemDetails { Title = "Request or Need changed during acceptance. Refresh the inbox." });
-        }
-        catch (SqlException error) when (error.Number is 1205 or 2601 or 2627 or 3960)
-        {
-            return Conflict(new ProblemDetails { Title = "Request or Need changed during acceptance. Refresh the inbox." });
-        }
+        await db.SaveChangesAsync(cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
         return Ok(AgreementView(agreement));
     }
 

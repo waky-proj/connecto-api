@@ -182,6 +182,119 @@ public class SqlServerAcceptanceTests
         }
     }
 
+    [SqlServerFact]
+    [Trait("Category", "SqlServerAcceptance")]
+    public async Task Concurrent_accepts_create_one_durable_agreement_and_retries_are_stable()
+    {
+        var connection = Environment.GetEnvironmentVariable("CONNECTO_F3_SQL_CONNECTION");
+        Assert.False(string.IsNullOrWhiteSpace(connection));
+        Assert.Equal("YES", Environment.GetEnvironmentVariable("CONNECTO_F3_ALLOW_DATABASE_WRITES"));
+        var suffix = Guid.NewGuid().ToString("N");
+        var requesterSubject = $"s6-requester-{suffix}";
+        var providerASubject = $"s6-provider-a-{suffix}";
+        var providerBSubject = $"s6-provider-b-{suffix}";
+        using var rsa = RSA.Create(2048);
+        var schemaReady = false;
+        try
+        {
+            using var factory = new SqlFactory(connection!, rsa);
+            await RequireCurrentSchema(factory);
+            schemaReady = true;
+            using var requester = Client(factory, Token(rsa, requesterSubject));
+            using var providerA = Client(factory, Token(rsa, providerASubject));
+            using var providerB = Client(factory, Token(rsa, providerBSubject));
+            var requesterId = (await Json(requester, "/api/users/me")).GetProperty("id").GetGuid();
+            var providerAId = (await Json(providerA, "/api/users/me")).GetProperty("id").GetGuid();
+            var providerBId = (await Json(providerB, "/api/users/me")).GetProperty("id").GetGuid();
+            var needResponse = await requester.PostAsJsonAsync("/api/needs", new {
+                title = $"S6 need {suffix}", description = "SQL concurrent acceptance", category = "Technology",
+                skills = new[] { "Programming" }, location = "Auckland", currency = "NZD", pricingBasis = "free"
+            });
+            Assert.Equal(HttpStatusCode.Created, needResponse.StatusCode);
+            var needId = (await needResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+            async Task<Guid> Propose(HttpClient provider, string label)
+            {
+                var offerResponse = await provider.PostAsJsonAsync("/api/offerings", new {
+                    title = $"S6 {label} {suffix}", description = "SQL concurrent acceptance", category = "Technology",
+                    skills = new[] { "Programming" }, location = "Auckland", remoteAvailable = false,
+                    experienceYears = 0, currency = "NZD", pricingBasis = "free"
+                });
+                Assert.Equal(HttpStatusCode.Created, offerResponse.StatusCode);
+                var offeringId = (await offerResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+                var proposed = await requester.PostAsJsonAsync("/api/connection-requests", new {
+                    needId, offeringId, needRevision = 1, offeringRevision = 1,
+                    terms = $"S6 agreed work {suffix}", pricingBasis = "free"
+                });
+                Assert.Equal(HttpStatusCode.Created, proposed.StatusCode);
+                return (await proposed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            }
+            var first = await Propose(providerA, "offer A");
+            var second = await Propose(providerB, "offer B");
+            var attempts = await Task.WhenAll(Enumerable.Range(0, 20).Select(i =>
+                (i % 2 == 0 ? providerA : providerB).PostAsJsonAsync(
+                    $"/api/connection-requests/{(i % 2 == 0 ? first : second)}/accept",
+                    new { revision = 1, idempotencyKey = i % 2 == 0 ? "s6-key-a" : "s6-key-b" })));
+            var unexpected = attempts.FirstOrDefault(response => response.StatusCode is not (HttpStatusCode.OK or HttpStatusCode.Conflict));
+            if (unexpected is not null)
+            {
+                var body = await unexpected.Content.ReadAsStringAsync();
+                Assert.Fail($"Unexpected {unexpected.StatusCode}: {body[..Math.Min(3000, body.Length)]}");
+            }
+            Assert.All(attempts, response => Assert.Contains(response.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict }));
+            Assert.Contains(attempts, response => response.StatusCode == HttpStatusCode.OK);
+            using (var scope = factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+                var agreements = await db.Engagements.Where(x => x.NeedId == needId).ToListAsync();
+                var agreement = Assert.Single(agreements);
+                Assert.Contains(agreement.ConnectionRequestId, new[] { first, second });
+                Assert.Equal(requesterId, agreement.RequesterId);
+                Assert.Contains(agreement.ProviderId, new[] { providerAId, providerBId });
+                var winner = agreement.ConnectionRequestId == first ? providerA : providerB;
+                var loser = agreement.ConnectionRequestId == first ? providerB : providerA;
+                var winnerKey = agreement.ConnectionRequestId == first ? "s6-key-a" : "s6-key-b";
+                var loserId = agreement.ConnectionRequestId == first ? second : first;
+                var retry = await winner.PostAsJsonAsync($"/api/connection-requests/{agreement.ConnectionRequestId}/accept",
+                    new { revision = 1, idempotencyKey = winnerKey });
+                Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+                Assert.Equal(agreement.Id, (await retry.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+                Assert.Equal(HttpStatusCode.Conflict, (await loser.PostAsJsonAsync(
+                    $"/api/connection-requests/{loserId}/accept",
+                    new { revision = 1, idempotencyKey = "loser-retry" })).StatusCode);
+                Assert.Equal("accepted", (await db.ConnectionRequests.SingleAsync(x => x.Id == agreement.ConnectionRequestId)).Status);
+                Assert.Equal("pending", (await db.ConnectionRequests.SingleAsync(x => x.Id == loserId)).Status);
+            }
+            using var freshFactory = new SqlFactory(connection!, rsa);
+            using var freshRequester = Client(freshFactory, Token(rsa, requesterSubject));
+            var saved = await Json(freshRequester, "/api/agreements");
+            Assert.Single(saved.EnumerateArray());
+            Assert.Equal(needId, saved[0].GetProperty("needId").GetGuid());
+        }
+        finally
+        {
+            if (schemaReady)
+            {
+                using var cleanup = new SqlFactory(connection!, rsa);
+                using var scope = cleanup.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+                var subjects = new[] { requesterSubject, providerASubject, providerBSubject };
+                var users = await db.Users.Where(x => subjects.Contains(x.AuthSubjectId)).ToListAsync();
+                var userIds = users.Select(x => x.Id).ToArray();
+                var needs = await db.Needs.Where(x => userIds.Contains(x.UserId)).ToListAsync();
+                var needIds = needs.Select(x => x.Id).ToArray();
+                db.Engagements.RemoveRange(await db.Engagements.Where(x => needIds.Contains(x.NeedId)).ToListAsync());
+                db.ConnectionRequests.RemoveRange(await db.ConnectionRequests.Where(x => needIds.Contains(x.NeedId)).ToListAsync());
+                await db.SaveChangesAsync();
+                db.Needs.RemoveRange(needs);
+                db.Offerings.RemoveRange(await db.Offerings.Where(x => userIds.Contains(x.UserId)).ToListAsync());
+                await db.SaveChangesAsync();
+                db.Users.RemoveRange(users);
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
     private sealed class SqlServerFactAttribute : FactAttribute
     {
         public SqlServerFactAttribute()

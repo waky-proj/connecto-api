@@ -116,6 +116,66 @@ namespace Connecto.Infrastructure.Migrations
                     b.ToTable("ConsumerReceipts");
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ClientKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("EngagementId", "Id");
+
+                    b.HasIndex("EngagementId", "SenderId", "ClientKey")
+                        .IsUnique();
+
+                    b.ToTable("ConversationMessages");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationReceipt", b =>
+                {
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("DeliveredThrough")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ReadThrough")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("EngagementId", "MemberId");
+
+                    b.HasIndex("MemberId");
+
+                    b.ToTable("ConversationReceipts");
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.Engagement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -825,6 +885,36 @@ namespace Connecto.Infrastructure.Migrations
                     b.HasOne("Connecto.Domain.Entities.OutboxEvent", null)
                         .WithMany()
                         .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationReceipt", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });

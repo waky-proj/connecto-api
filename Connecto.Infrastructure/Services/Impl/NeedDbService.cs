@@ -39,7 +39,10 @@ namespace Connecto.Infrastructure.Services.Impl
             if (changed != 1) return false;
             dbContext.ChangeTracker.Clear();
             await dbContext.NeedSkills.Where(item => item.NeedId == need.Id).ExecuteDeleteAsync();
-            dbContext.NeedSkills.AddRange(need.Skills);
+            dbContext.NeedSkills.AddRange(need.Skills.Select(skill => new NeedSkill
+            {
+                Id = skill.Id, NeedId = need.Id, Skill = skill.Skill
+            }));
             await dbContext.SaveChangesAsync();
             return true;
         }

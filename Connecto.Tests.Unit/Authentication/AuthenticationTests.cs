@@ -525,6 +525,73 @@ public class AuthenticationTests
         Assert.Equal("Weed the front garden on Saturday morning.", frozen.GetProperty("terms").GetString());
     }
 
+    [Fact]
+    public async Task Conversation_is_persistent_ordered_idempotent_and_participant_only()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        using var provider = factory.CreateClient();
+        using var outsider = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "provider-s7"));
+        outsider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "outsider-s7"));
+        var requesterId = (await requester.GetFromJsonAsync<Profile>("/api/users/me"))!.Id;
+        var need = await (await requester.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Garden help", "Need some weeding", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", null, "NZD", "negotiable"))).Content.ReadFromJsonAsync<Listing>();
+        var offering = await (await provider.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Garden work", "Can help with weeding", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"))).Content.ReadFromJsonAsync<Listing>();
+        var created = await requester.PostAsJsonAsync("/api/connection-requests", new {
+            needId = need!.Id, offeringId = offering!.Id, needRevision = 1, offeringRevision = 1,
+            terms = "Weed the garden on Saturday morning.", pricingBasis = "free"
+        });
+        var requestId = (await created.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var accepted = await provider.PostAsJsonAsync($"/api/connection-requests/{requestId}/accept",
+            new { revision = 1, idempotencyKey = "s7-agreement" });
+        var agreement = await accepted.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var id = agreement.GetProperty("id").GetGuid();
+        var path = $"/api/agreements/{id}/conversation";
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"{path}/messages")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.PostAsJsonAsync($"{path}/messages",
+            new { text = "Intrusion", idempotencyKey = "x" })).StatusCode);
+        var first = await requester.PostAsJsonAsync($"{path}/messages", new { text = "Saturday works.", idempotencyKey = "msg-1" });
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        var firstMessage = await first.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var firstId = firstMessage.GetProperty("id").GetInt64();
+        var retry = await requester.PostAsJsonAsync($"{path}/messages", new { text = "Saturday works.", idempotencyKey = "msg-1" });
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        Assert.Equal(firstId, (await retry.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetInt64());
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/messages",
+            new { text = "Different text", idempotencyKey = "msg-1" })).StatusCode);
+        var second = await provider.PostAsJsonAsync($"{path}/messages", new { text = "See you then.", idempotencyKey = "msg-2" });
+        var secondId = (await second.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetInt64();
+        Assert.True(secondId > firstId);
+        using var freshRequester = factory.CreateClient();
+        freshRequester.DefaultRequestHeaders.Authorization = requester.DefaultRequestHeaders.Authorization;
+        var history = await freshRequester.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/messages?pageSize=1");
+        Assert.True(history.GetProperty("hasMore").GetBoolean());
+        Assert.Equal(secondId, history.GetProperty("messages")[0].GetProperty("id").GetInt64());
+        var older = await freshRequester.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/messages?before={secondId}");
+        Assert.Equal(firstId, older.GetProperty("messages")[0].GetProperty("id").GetInt64());
+        var newer = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/messages?after={firstId}");
+        Assert.Equal(secondId, newer.GetProperty("messages")[0].GetProperty("id").GetInt64());
+        Assert.Equal(HttpStatusCode.BadRequest, (await provider.PostAsJsonAsync($"{path}/receipt",
+            new { deliveredThrough = secondId + 100, readThrough = secondId + 100 })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await provider.PostAsJsonAsync($"{path}/receipt",
+            new { deliveredThrough = secondId, readThrough = firstId })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await provider.PostAsJsonAsync($"{path}/receipt",
+            new { deliveredThrough = firstId, readThrough = 0 })).StatusCode);
+        var receiptHistory = await freshRequester.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/messages");
+        Assert.Equal(secondId, receiptHistory.GetProperty("provider").GetProperty("deliveredThrough").GetInt64());
+        Assert.Equal(firstId, receiptHistory.GetProperty("provider").GetProperty("readThrough").GetInt64());
+        Assert.Equal(requesterId, receiptHistory.GetProperty("messages")[0].GetProperty("senderId").GetGuid());
+        Assert.Equal("Weed the garden on Saturday morning.",
+            (await requester.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/agreements/{id}")).GetProperty("terms").GetString());
+        using var scope = factory.Services.CreateScope();
+        Assert.Equal(2, await scope.ServiceProvider.GetRequiredService<ConnectoDbContext>().ConversationMessages.CountAsync());
+    }
+
     private sealed class FixedCurrentUser(User user) : ICurrentUser
     {
         public Task<User> GetAsync(CancellationToken cancellationToken = default) => Task.FromResult(user);
