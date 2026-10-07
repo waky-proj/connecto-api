@@ -295,6 +295,122 @@ public class SqlServerAcceptanceTests
         }
     }
 
+    [SqlServerFact]
+    [Trait("Category", "SqlServerAcceptance")]
+    public async Task Conversation_retries_receipts_and_history_survive_parallel_requests_and_restart()
+    {
+        var connection = Environment.GetEnvironmentVariable("CONNECTO_F3_SQL_CONNECTION");
+        Assert.False(string.IsNullOrWhiteSpace(connection));
+        Assert.Equal("YES", Environment.GetEnvironmentVariable("CONNECTO_F3_ALLOW_DATABASE_WRITES"));
+        var suffix = Guid.NewGuid().ToString("N");
+        var requesterSubject = $"s7-requester-{suffix}";
+        var providerSubject = $"s7-provider-{suffix}";
+        var outsiderSubject = $"s7-outsider-{suffix}";
+        using var rsa = RSA.Create(2048);
+        var schemaReady = false;
+        try
+        {
+            using var factory = new SqlFactory(connection!, rsa);
+            await RequireCurrentSchema(factory);
+            schemaReady = true;
+            using var requester = Client(factory, Token(rsa, requesterSubject));
+            using var provider = Client(factory, Token(rsa, providerSubject));
+            using var outsider = Client(factory, Token(rsa, outsiderSubject));
+            var needResponse = await requester.PostAsJsonAsync("/api/needs", new {
+                title = $"S7 need {suffix}", description = "Conversation SQL acceptance", category = "Technology",
+                skills = new[] { "Programming" }, location = "Auckland", currency = "NZD", pricingBasis = "free"
+            });
+            Assert.Equal(HttpStatusCode.Created, needResponse.StatusCode);
+            var needId = (await needResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            var offerResponse = await provider.PostAsJsonAsync("/api/offerings", new {
+                title = $"S7 offer {suffix}", description = "Conversation SQL acceptance", category = "Technology",
+                skills = new[] { "Programming" }, location = "Auckland", remoteAvailable = false,
+                experienceYears = 0, currency = "NZD", pricingBasis = "free"
+            });
+            Assert.Equal(HttpStatusCode.Created, offerResponse.StatusCode);
+            var offeringId = (await offerResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            var proposed = await requester.PostAsJsonAsync("/api/connection-requests", new {
+                needId, offeringId, needRevision = 1, offeringRevision = 1,
+                terms = $"S7 agreed work {suffix}", pricingBasis = "free"
+            });
+            Assert.Equal(HttpStatusCode.Created, proposed.StatusCode);
+            var requestId = (await proposed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            var accepted = await provider.PostAsJsonAsync($"/api/connection-requests/{requestId}/accept",
+                new { revision = 1, idempotencyKey = "s7-accept" });
+            Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+            var agreementId = (await accepted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+            var path = $"/api/agreements/{agreementId}/conversation";
+            Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"{path}/messages")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await outsider.PostAsJsonAsync($"{path}/messages",
+                new { text = "Outsider", idempotencyKey = "outsider" })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await outsider.PostAsJsonAsync($"{path}/receipt",
+                new { deliveredThrough = 0, readThrough = 0 })).StatusCode);
+
+            var attempts = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
+                requester.PostAsJsonAsync($"{path}/messages", new { text = "One message", idempotencyKey = "parallel-key" })));
+            Assert.All(attempts, response => Assert.Contains(response.StatusCode, new[] { HttpStatusCode.Created, HttpStatusCode.OK }));
+            var ids = await Task.WhenAll(attempts.Select(async response =>
+                (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64()));
+            var firstId = Assert.Single(ids.Distinct());
+            Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/messages",
+                new { text = "Changed message", idempotencyKey = "parallel-key" })).StatusCode);
+            var second = await provider.PostAsJsonAsync($"{path}/messages",
+                new { text = "Reply", idempotencyKey = "reply-key" });
+            Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+            var secondId = (await second.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64();
+            Assert.True(secondId > firstId);
+            var receipts = await Task.WhenAll(Enumerable.Range(0, 12).Select(i =>
+                provider.PostAsJsonAsync($"{path}/receipt", new {
+                    deliveredThrough = i % 2 == 0 ? secondId : firstId,
+                    readThrough = i % 2 == 0 ? firstId : 0L
+                })));
+            Assert.All(receipts, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+
+            using var freshFactory = new SqlFactory(connection!, rsa);
+            using var freshRequester = Client(freshFactory, Token(rsa, requesterSubject));
+            var latest = await Json(freshRequester, $"{path}/messages?pageSize=1");
+            Assert.True(latest.GetProperty("hasMore").GetBoolean());
+            Assert.Equal(secondId, latest.GetProperty("messages")[0].GetProperty("id").GetInt64());
+            Assert.Equal(secondId, latest.GetProperty("provider").GetProperty("deliveredThrough").GetInt64());
+            Assert.Equal(firstId, latest.GetProperty("provider").GetProperty("readThrough").GetInt64());
+            Assert.Equal(firstId, (await Json(freshRequester, $"{path}/messages?before={secondId}"))
+                .GetProperty("messages")[0].GetProperty("id").GetInt64());
+            Assert.Equal(secondId, (await Json(freshRequester, $"{path}/messages?after={firstId}"))
+                .GetProperty("messages")[0].GetProperty("id").GetInt64());
+            Assert.Equal($"S7 agreed work {suffix}", (await Json(freshRequester, $"/api/agreements/{agreementId}"))
+                .GetProperty("terms").GetString());
+            using var scope = freshFactory.Services.CreateScope();
+            Assert.Equal(2, await scope.ServiceProvider.GetRequiredService<ConnectoDbContext>()
+                .ConversationMessages.CountAsync(x => x.EngagementId == agreementId));
+        }
+        finally
+        {
+            if (schemaReady)
+            {
+                using var cleanup = new SqlFactory(connection!, rsa);
+                using var scope = cleanup.Services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+                var subjects = new[] { requesterSubject, providerSubject, outsiderSubject };
+                var users = await db.Users.Where(x => subjects.Contains(x.AuthSubjectId)).ToListAsync();
+                var userIds = users.Select(x => x.Id).ToArray();
+                var needs = await db.Needs.Where(x => userIds.Contains(x.UserId)).ToListAsync();
+                var needIds = needs.Select(x => x.Id).ToArray();
+                var agreementIds = await db.Engagements.Where(x => needIds.Contains(x.NeedId)).Select(x => x.Id).ToArrayAsync();
+                db.ConversationReceipts.RemoveRange(await db.ConversationReceipts.Where(x => agreementIds.Contains(x.EngagementId)).ToListAsync());
+                db.ConversationMessages.RemoveRange(await db.ConversationMessages.Where(x => agreementIds.Contains(x.EngagementId)).ToListAsync());
+                await db.SaveChangesAsync();
+                db.Engagements.RemoveRange(await db.Engagements.Where(x => agreementIds.Contains(x.Id)).ToListAsync());
+                db.ConnectionRequests.RemoveRange(await db.ConnectionRequests.Where(x => needIds.Contains(x.NeedId)).ToListAsync());
+                await db.SaveChangesAsync();
+                db.Needs.RemoveRange(needs);
+                db.Offerings.RemoveRange(await db.Offerings.Where(x => userIds.Contains(x.UserId)).ToListAsync());
+                await db.SaveChangesAsync();
+                db.Users.RemoveRange(users);
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
     private sealed class SqlServerFactAttribute : FactAttribute
     {
         public SqlServerFactAttribute()
