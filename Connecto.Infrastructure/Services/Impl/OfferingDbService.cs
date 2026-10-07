@@ -47,7 +47,10 @@ namespace Connecto.Infrastructure.Services.Impl
             if (changed != 1) return false;
             dbContext.ChangeTracker.Clear();
             await dbContext.OfferingSkills.Where(item => item.OfferingId == offering.Id).ExecuteDeleteAsync();
-            dbContext.OfferingSkills.AddRange(offering.Skills);
+            dbContext.OfferingSkills.AddRange(offering.Skills.Select(skill => new OfferingSkill
+            {
+                Id = skill.Id, OfferingId = offering.Id, Skill = skill.Skill
+            }));
             await dbContext.SaveChangesAsync();
             return true;
         }

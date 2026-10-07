@@ -19,6 +19,10 @@ namespace Connecto.Infrastructure.Services.Data
         public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
         public DbSet<ConsumerReceipt> ConsumerReceipts => Set<ConsumerReceipt>();
         public DbSet<JourneyEvent> JourneyEvents => Set<JourneyEvent>();
+        public DbSet<ConnectionRequest> ConnectionRequests => Set<ConnectionRequest>();
+        public DbSet<Engagement> Engagements => Set<Engagement>();
+        public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
+        public DbSet<ConversationReceipt> ConversationReceipts => Set<ConversationReceipt>();
 
         public ConnectoDbContext(
             DbContextOptions<ConnectoDbContext> options)
@@ -33,6 +37,57 @@ namespace Connecto.Infrastructure.Services.Data
             ConfigureNeed(modelBuilder);
             ConfigureOffering(modelBuilder);
             ConfigureMatch(modelBuilder);
+            modelBuilder.Entity<ConnectionRequest>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Terms).HasMaxLength(2000).IsRequired();
+                entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+                entity.Property(x => x.PendingPairKey).HasMaxLength(73);
+                entity.Property(x => x.ProposedAmount).HasPrecision(18, 2);
+                entity.Property(x => x.Revision).IsConcurrencyToken();
+                entity.HasIndex(x => x.PendingPairKey).IsUnique().HasFilter("[PendingPairKey] IS NOT NULL");
+                entity.HasIndex(x => new { x.SenderId, x.CreatedAt });
+                entity.HasIndex(x => new { x.RecipientId, x.CreatedAt });
+                entity.HasOne<Need>().WithMany().HasForeignKey(x => x.NeedId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.RecipientId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<Engagement>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.NeedTitle).HasMaxLength(200).IsRequired();
+                entity.Property(x => x.OfferingTitle).HasMaxLength(200).IsRequired();
+                entity.Property(x => x.Terms).HasMaxLength(2000).IsRequired();
+                entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(x => x.IdempotencyKey).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.AgreedAmount).HasPrecision(18, 2);
+                entity.HasIndex(x => x.NeedId).IsUnique();
+                entity.HasIndex(x => x.ConnectionRequestId).IsUnique();
+                entity.HasOne<ConnectionRequest>().WithMany().HasForeignKey(x => x.ConnectionRequestId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Need>().WithMany().HasForeignKey(x => x.NeedId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.RequesterId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<ConversationMessage>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.ClientKey).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Text).HasMaxLength(2000).IsRequired();
+                entity.HasIndex(x => new { x.EngagementId, x.Id });
+                entity.HasIndex(x => new { x.EngagementId, x.SenderId, x.ClientKey }).IsUnique();
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<ConversationReceipt>(entity =>
+            {
+                entity.HasKey(x => new { x.EngagementId, x.MemberId });
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.MemberId).OnDelete(DeleteBehavior.NoAction);
+            });
             modelBuilder.Entity<MemberBlock>(entity =>
             {
                 entity.HasKey(x => x.Id);

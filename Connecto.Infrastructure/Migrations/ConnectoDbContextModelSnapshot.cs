@@ -22,6 +22,83 @@ namespace Connecto.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Connecto.Domain.Entities.ConnectionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("NeedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("NeedRevision")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OfferingRevision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PendingPairKey")
+                        .HasMaxLength(73)
+                        .HasColumnType("nvarchar(73)");
+
+                    b.Property<int>("PricingBasis")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ProposedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Terms")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NeedId");
+
+                    b.HasIndex("OfferingId");
+
+                    b.HasIndex("PendingPairKey")
+                        .IsUnique()
+                        .HasFilter("[PendingPairKey] IS NOT NULL");
+
+                    b.HasIndex("RecipientId", "CreatedAt");
+
+                    b.HasIndex("SenderId", "CreatedAt");
+
+                    b.ToTable("ConnectionRequests");
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.ConsumerReceipt", b =>
                 {
                     b.Property<Guid>("EventId")
@@ -37,6 +114,148 @@ namespace Connecto.Infrastructure.Migrations
                     b.HasKey("EventId", "Consumer");
 
                     b.ToTable("ConsumerReceipts");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ClientKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("EngagementId", "Id");
+
+                    b.HasIndex("EngagementId", "SenderId", "ClientKey")
+                        .IsUnique();
+
+                    b.ToTable("ConversationMessages");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationReceipt", b =>
+                {
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("DeliveredThrough")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ReadThrough")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("EngagementId", "MemberId");
+
+                    b.HasIndex("MemberId");
+
+                    b.ToTable("ConversationReceipts");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.Engagement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AcceptedRequestRevision")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("AgreedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ConnectionRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("NeedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("NeedRevision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NeedTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OfferingRevision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OfferingTitle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("PricingBasis")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Terms")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("NeedId")
+                        .IsUnique();
+
+                    b.HasIndex("OfferingId");
+
+                    b.HasIndex("ProviderId");
+
+                    b.HasIndex("RequesterId");
+
+                    b.ToTable("Engagements");
                 });
 
             modelBuilder.Entity("Connecto.Domain.Entities.JourneyEvent", b =>
@@ -634,11 +853,101 @@ namespace Connecto.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.ConnectionRequest", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Need", null)
+                        .WithMany()
+                        .HasForeignKey("NeedId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Offering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.ConsumerReceipt", b =>
                 {
                     b.HasOne("Connecto.Domain.Entities.OutboxEvent", null)
                         .WithMany()
                         .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationMessage", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.ConversationReceipt", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.Engagement", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.ConnectionRequest", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionRequestId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Need", null)
+                        .WithMany()
+                        .HasForeignKey("NeedId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Offering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequesterId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });
