@@ -20,4 +20,10 @@ public sealed class Engagement
     public string IdempotencyKey { get; set; } = "";
     public int AcceptedRequestRevision { get; set; }
     public DateTime AcceptedAt { get; set; } = DateTime.UtcNow;
+    public string OutcomeState { get; set; } = "awaiting_confirmation";
+    public int OutcomeRevision { get; set; } = 1;
+    public DateTime? OutcomeUpdatedAt { get; set; }
+    public DateTime? DisputeReviewedAt { get; set; }
+    public string? DisputeReviewerSubjectId { get; set; }
+    public string? DisputeReviewNote { get; set; }
 }

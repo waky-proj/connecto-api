@@ -200,6 +200,17 @@ namespace Connecto.Infrastructure.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
+                    b.Property<string>("DisputeReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("DisputeReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisputeReviewerSubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -226,6 +237,18 @@ namespace Connecto.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("OutcomeRevision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<string>("OutcomeState")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime?>("OutcomeUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("PricingBasis")
                         .HasColumnType("int");
@@ -256,6 +279,133 @@ namespace Connecto.Infrastructure.Migrations
                     b.HasIndex("RequesterId");
 
                     b.ToTable("Engagements");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.EngagementOutcomeEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReportedOutcome")
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("EngagementId", "Id");
+
+                    b.HasIndex("EngagementId", "ActorId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("EngagementOutcomeEvents");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.EngagementReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Agreement")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Clarity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("Commitments")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Communication")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ExcludedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExcludedBySubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("ExclusionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PublicationDelayDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublishAfterAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Reliability")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RevieweeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReviewerRole")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RevieweeId");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.HasIndex("EngagementId", "ReviewerId")
+                        .IsUnique();
+
+                    b.ToTable("EngagementReviews");
                 });
 
             modelBuilder.Entity("Connecto.Domain.Entities.JourneyEvent", b =>
@@ -342,6 +492,121 @@ namespace Connecto.Infrastructure.Migrations
                     b.HasIndex("OfferingId");
 
                     b.ToTable("Match");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MediaAccessAudit", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MediaAssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("MediaAssetId", "OccurredAt");
+
+                    b.ToTable("MediaAccessAudits");
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MediaAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayKey")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<Guid>("EngagementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("QuarantineKey")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RemovalReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RemovedBySubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid?>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Stage")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("UploadExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UploaderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("UploaderId");
+
+                    b.HasIndex("Stage", "CreatedAt");
+
+                    b.HasIndex("EngagementId", "UploaderId", "Purpose");
+
+                    b.ToTable("MediaAssets");
                 });
 
             modelBuilder.Entity("Connecto.Domain.Entities.MemberBlock", b =>
@@ -678,6 +943,51 @@ namespace Connecto.Infrastructure.Migrations
                     b.ToTable("OutboxEvents");
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.PilotSignal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("CandidateCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClientKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NeedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NeedId");
+
+                    b.HasIndex("OfferingId");
+
+                    b.HasIndex("Kind", "OccurredAt");
+
+                    b.HasIndex("MemberId", "Kind", "ClientKey")
+                        .IsUnique();
+
+                    b.ToTable("PilotSignals");
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.SafetyReport", b =>
                 {
                     b.Property<Guid>("Id")
@@ -691,6 +1001,9 @@ namespace Connecto.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("MediaAssetId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("OfferingId")
                         .HasColumnType("uniqueidentifier");
@@ -719,6 +1032,8 @@ namespace Connecto.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MediaAssetId");
 
                     b.HasIndex("OfferingId");
 
@@ -952,6 +1267,42 @@ namespace Connecto.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.EngagementOutcomeEvent", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.EngagementReview", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RevieweeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.JourneyEvent", b =>
                 {
                     b.HasOne("Connecto.Domain.Entities.OutboxEvent", null)
@@ -973,6 +1324,41 @@ namespace Connecto.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("OfferingId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MediaAccessAudit", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.MediaAsset", null)
+                        .WithMany()
+                        .HasForeignKey("MediaAssetId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Connecto.Domain.Entities.MediaAsset", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.Engagement", null)
+                        .WithMany()
+                        .HasForeignKey("EngagementId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.EngagementReview", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploaderId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });
 
@@ -1035,8 +1421,33 @@ namespace Connecto.Infrastructure.Migrations
                     b.Navigation("Offering");
                 });
 
+            modelBuilder.Entity("Connecto.Domain.Entities.PilotSignal", b =>
+                {
+                    b.HasOne("Connecto.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Need", null)
+                        .WithMany()
+                        .HasForeignKey("NeedId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Connecto.Domain.Entities.Offering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.NoAction);
+                });
+
             modelBuilder.Entity("Connecto.Domain.Entities.SafetyReport", b =>
                 {
+                    b.HasOne("Connecto.Domain.Entities.MediaAsset", null)
+                        .WithMany()
+                        .HasForeignKey("MediaAssetId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Connecto.Domain.Entities.Offering", null)
                         .WithMany()
                         .HasForeignKey("OfferingId")

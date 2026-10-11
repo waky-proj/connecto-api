@@ -19,8 +19,13 @@ namespace Connecto.Infrastructure.Services.Data
         public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
         public DbSet<ConsumerReceipt> ConsumerReceipts => Set<ConsumerReceipt>();
         public DbSet<JourneyEvent> JourneyEvents => Set<JourneyEvent>();
+        public DbSet<PilotSignal> PilotSignals => Set<PilotSignal>();
         public DbSet<ConnectionRequest> ConnectionRequests => Set<ConnectionRequest>();
         public DbSet<Engagement> Engagements => Set<Engagement>();
+        public DbSet<EngagementOutcomeEvent> EngagementOutcomeEvents => Set<EngagementOutcomeEvent>();
+        public DbSet<EngagementReview> EngagementReviews => Set<EngagementReview>();
+        public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+        public DbSet<MediaAccessAudit> MediaAccessAudits => Set<MediaAccessAudit>();
         public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
         public DbSet<ConversationReceipt> ConversationReceipts => Set<ConversationReceipt>();
 
@@ -37,6 +42,17 @@ namespace Connecto.Infrastructure.Services.Data
             ConfigureNeed(modelBuilder);
             ConfigureOffering(modelBuilder);
             ConfigureMatch(modelBuilder);
+            modelBuilder.Entity<PilotSignal>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Kind).HasMaxLength(16).IsRequired();
+                entity.Property(x => x.ClientKey).HasMaxLength(100).IsRequired();
+                entity.HasIndex(x => new { x.MemberId, x.Kind, x.ClientKey }).IsUnique();
+                entity.HasIndex(x => new { x.Kind, x.OccurredAt });
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.MemberId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Need>().WithMany().HasForeignKey(x => x.NeedId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
+            });
             modelBuilder.Entity<ConnectionRequest>(entity =>
             {
                 entity.HasKey(x => x.Id);
@@ -63,6 +79,10 @@ namespace Connecto.Infrastructure.Services.Data
                 entity.Property(x => x.Currency).HasMaxLength(3).IsRequired();
                 entity.Property(x => x.IdempotencyKey).HasMaxLength(100).IsRequired();
                 entity.Property(x => x.AgreedAmount).HasPrecision(18, 2);
+                entity.Property(x => x.OutcomeState).HasMaxLength(32).IsRequired();
+                entity.Property(x => x.OutcomeRevision).IsConcurrencyToken();
+                entity.Property(x => x.DisputeReviewerSubjectId).HasMaxLength(128);
+                entity.Property(x => x.DisputeReviewNote).HasMaxLength(1000);
                 entity.HasIndex(x => x.NeedId).IsUnique();
                 entity.HasIndex(x => x.ConnectionRequestId).IsUnique();
                 entity.HasOne<ConnectionRequest>().WithMany().HasForeignKey(x => x.ConnectionRequestId).OnDelete(DeleteBehavior.NoAction);
@@ -70,6 +90,60 @@ namespace Connecto.Infrastructure.Services.Data
                 entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.RequesterId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<EngagementOutcomeEvent>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Action).HasMaxLength(24).IsRequired();
+                entity.Property(x => x.ReportedOutcome).HasMaxLength(24);
+                entity.Property(x => x.Reason).HasMaxLength(1000);
+                entity.Property(x => x.IdempotencyKey).HasMaxLength(100).IsRequired();
+                entity.HasIndex(x => new { x.EngagementId, x.Id });
+                entity.HasIndex(x => new { x.EngagementId, x.ActorId, x.IdempotencyKey }).IsUnique();
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<EngagementReview>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.ReviewerRole).HasMaxLength(16).IsRequired();
+                entity.Property(x => x.Comment).HasMaxLength(2000);
+                entity.Property(x => x.ExclusionReason).HasMaxLength(1000);
+                entity.Property(x => x.ExcludedBySubjectId).HasMaxLength(128);
+                entity.HasIndex(x => new { x.EngagementId, x.ReviewerId }).IsUnique();
+                entity.HasIndex(x => x.RevieweeId);
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.RevieweeId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<MediaAsset>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Purpose).HasMaxLength(16).IsRequired();
+                entity.Property(x => x.Kind).HasMaxLength(16).IsRequired();
+                entity.Property(x => x.Stage).HasMaxLength(16).IsRequired();
+                entity.Property(x => x.Stage).IsConcurrencyToken();
+                entity.Property(x => x.QuarantineKey).HasMaxLength(160).IsRequired();
+                entity.Property(x => x.DisplayKey).HasMaxLength(160);
+                entity.Property(x => x.ContentType).HasMaxLength(32);
+                entity.Property(x => x.RejectionReason).HasMaxLength(100);
+                entity.Property(x => x.RemovalReason).HasMaxLength(1000);
+                entity.Property(x => x.RemovedBySubjectId).HasMaxLength(128);
+                entity.HasIndex(x => new { x.EngagementId, x.UploaderId, x.Purpose });
+                entity.HasIndex(x => new { x.Stage, x.CreatedAt });
+                entity.HasOne<Engagement>().WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.UploaderId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<EngagementReview>().WithMany().HasForeignKey(x => x.ReviewId).OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<MediaAccessAudit>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Purpose).HasMaxLength(40).IsRequired();
+                entity.HasIndex(x => new { x.MediaAssetId, x.OccurredAt });
+                entity.HasOne<MediaAsset>().WithMany().HasForeignKey(x => x.MediaAssetId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<User>().WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.NoAction);
             });
             modelBuilder.Entity<ConversationMessage>(entity =>
             {
@@ -106,6 +180,7 @@ namespace Connecto.Infrastructure.Services.Data
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.ReporterId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<User>().WithMany().HasForeignKey(x => x.SubjectId).OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne<Offering>().WithMany().HasForeignKey(x => x.OfferingId).OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne<MediaAsset>().WithMany().HasForeignKey(x => x.MediaAssetId).OnDelete(DeleteBehavior.NoAction);
             });
             modelBuilder.Entity<OutboxEvent>(entity =>
             {

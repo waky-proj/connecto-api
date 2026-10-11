@@ -86,7 +86,7 @@ public sealed class SafetyController(ConnectoDbContext db, ICurrentUser currentU
         var actor = (await currentUser.GetAsync(cancellationToken)).Id;
         var reports = await db.SafetyReports.AsNoTracking().Where(x => x.ReporterId == actor)
             .OrderByDescending(x => x.CreatedAt).Take(100)
-            .Select(x => new { x.Id, x.SubjectId, x.OfferingId, x.Reason, x.Details, x.Status, x.CreatedAt })
+            .Select(x => new { x.Id, x.SubjectId, x.OfferingId, x.MediaAssetId, x.Reason, x.Details, x.Status, x.CreatedAt })
             .ToListAsync(cancellationToken);
         return Ok(reports);
     }
@@ -98,7 +98,7 @@ public sealed class SafetyController(ConnectoDbContext db, ICurrentUser currentU
         if (status is not ("open" or "reviewed")) return BadRequest();
         var cases = await db.SafetyReports.AsNoTracking().Where(x => x.Status == status)
             .OrderBy(x => x.CreatedAt).Take(100)
-            .Select(x => new { x.Id, x.ReporterId, x.SubjectId, x.OfferingId,
+            .Select(x => new { x.Id, x.ReporterId, x.SubjectId, x.OfferingId, x.MediaAssetId,
                 x.Reason, x.Details, x.Status, x.CreatedAt, x.ReviewedAt, x.OperatorSubjectId })
             .ToListAsync(cancellationToken);
         return Ok(cases);
@@ -109,7 +109,7 @@ public sealed class SafetyController(ConnectoDbContext db, ICurrentUser currentU
     {
         if (!IsOperator()) return Forbid();
         var report = await db.SafetyReports.AsNoTracking().Where(x => x.Id == id)
-            .Select(x => new { x.Id, x.ReporterId, x.SubjectId, x.OfferingId,
+            .Select(x => new { x.Id, x.ReporterId, x.SubjectId, x.OfferingId, x.MediaAssetId,
                 x.Reason, x.Details, x.Status, x.CreatedAt, x.ReviewedAt, x.OperatorSubjectId })
             .SingleOrDefaultAsync(cancellationToken);
         return report is null ? NotFound() : Ok(report);

@@ -11,6 +11,7 @@ using Connecto.Api.Authentication;
 using Connecto.Domain.Matching;
 using Connecto.Application.Internal.Validators;
 using Connecto.Api.Safety;
+using Connecto.Api.Media;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCognitoAuthentication(builder.Configuration);
@@ -49,6 +50,8 @@ builder.Services.AddTransient<ICalculator, SkillCalculator>();
 builder.Services.AddScoped<INeedDbService, NeedDbService>();
 builder.Services.AddScoped<IOfferingDbService, OfferingDbService>();
 builder.Services.AddScoped<IUserDbService, UserDbService>();
+builder.Services.AddSingleton<IMediaObjectStore, S3MediaObjectStore>();
+builder.Services.AddHostedService<MediaCleanupWorker>();
 builder.Services.AddSingleton<OutboxDispatcher>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<OutboxDispatcher>());
 
