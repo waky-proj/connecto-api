@@ -6,6 +6,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Connecto.Api.Authentication;
 using Connecto.Api.Safety;
+using Connecto.Api.Media;
+using SkiaSharp;
+using System.Collections.Concurrent;
 using Connecto.Domain.Entities;
 using Connecto.Domain.Requests;
 using Connecto.Infrastructure.Services.Data;
@@ -597,8 +600,529 @@ public class AuthenticationTests
         public Task<User> GetAsync(CancellationToken cancellationToken = default) => Task.FromResult(user);
     }
 
+    [Fact]
+    public async Task Media_quarantine_parent_authorisation_hidden_delivery_withdrawal_and_failure()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        using var provider = factory.CreateClient();
+        using var outsider = factory.CreateClient();
+        using var staff = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "media-requester"));
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "media-provider"));
+        outsider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "media-outsider"));
+        staff.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "media-staff", group: "safety-operators"));
+        var requesterId = (await requester.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me")).GetProperty("id").GetGuid();
+        var providerId = (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me")).GetProperty("id").GetGuid();
+        var agreementId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope()) {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            db.Engagements.Add(new Engagement { Id = agreementId, RequesterId = requesterId, ProviderId = providerId,
+                OutcomeState = "both_confirmed", OutcomeUpdatedAt = DateTime.UtcNow,
+                ConnectionRequestId = Guid.NewGuid(), NeedId = Guid.NewGuid(), OfferingId = Guid.NewGuid() });
+            await db.SaveChangesAsync();
+        }
+        var grantBody = new { agreementId, purpose = "review", kind = "before", contentType = "image/jpeg" };
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.PostAsJsonAsync("/api/media/upload-grants", grantBody)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await requester.PostAsJsonAsync("/api/media/upload-grants",
+            new { agreementId, purpose = "review", kind = "before", contentType = "image/tiff" })).StatusCode);
+        var badGrant = await requester.PostAsJsonAsync("/api/media/upload-grants", grantBody);
+        Assert.Equal(HttpStatusCode.Created, badGrant.StatusCode);
+        var badId = (await badGrant.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NotFound, (await requester.GetAsync($"/api/media/{badId}/content")).StatusCode);
+        factory.Media.Put($"quarantine/{badId:N}", [1, 2, 3]);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await requester.PostAsync($"/api/media/{badId}/finalise", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await requester.GetAsync($"/api/media/{badId}/content")).StatusCode);
+
+        var goodGrant = await requester.PostAsJsonAsync("/api/media/upload-grants", grantBody);
+        var goodId = (await goodGrant.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        using var bitmap = new SKBitmap(12, 8);
+        bitmap.Erase(SKColors.Blue);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var jpeg = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+        var baseBytes = jpeg.ToArray();
+        var marker = new byte[] { 69, 120, 105, 102, 0, 0, 73, 73, 42, 0, 8, 0, 0, 0,
+            1, 0, 18, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0 }
+            .Concat(System.Text.Encoding.ASCII.GetBytes("GPS_SECRET_MARKER")).ToArray();
+        var segment = new byte[] { 0xff, 0xe1, (byte)((marker.Length + 2) >> 8), (byte)(marker.Length + 2) };
+        var bytes = baseBytes[..2].Concat(segment).Concat(marker).Concat(baseBytes[2..]).ToArray();
+        var mismatchGrant = await requester.PostAsJsonAsync("/api/media/upload-grants",
+            new { agreementId, purpose = "review", kind = "after", contentType = "image/png" });
+        var mismatchId = (await mismatchGrant.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        factory.Media.Put($"quarantine/{mismatchId:N}", baseBytes);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await requester.PostAsync($"/api/media/{mismatchId}/finalise", null)).StatusCode);
+        var oversizedGrant = await requester.PostAsJsonAsync("/api/media/upload-grants", grantBody);
+        var oversizedId = (await oversizedGrant.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        factory.Media.Put($"quarantine/{oversizedId:N}", new byte[5 * 1024 * 1024 + 1]);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await requester.PostAsync($"/api/media/{oversizedId}/finalise", null)).StatusCode);
+        factory.Media.Put($"quarantine/{goodId:N}", bytes);
+        var finalised = await requester.PostAsync($"/api/media/{goodId}/finalise", null);
+        Assert.True(finalised.StatusCode == HttpStatusCode.OK, await finalised.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.NotFound, (await provider.GetAsync($"/api/media/{goodId}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"/api/media/{goodId}/content")).StatusCode);
+        var ownImage = await requester.GetAsync($"/api/media/{goodId}/content");
+        Assert.Equal(HttpStatusCode.OK, ownImage.StatusCode);
+        var servedBytes = await ownImage.Content.ReadAsByteArrayAsync();
+        Assert.DoesNotContain("GPS_SECRET_MARKER", System.Text.Encoding.Latin1.GetString(servedBytes));
+        using var servedData = SKData.CreateCopy(servedBytes);
+        using var servedCodec = SKCodec.Create(servedData);
+        Assert.Equal(8, servedCodec.Info.Width);
+        Assert.Equal(12, servedCodec.Info.Height);
+        Assert.True(ownImage.Headers.CacheControl?.NoStore);
+        Assert.True(ownImage.Headers.CacheControl?.Private);
+        var reviewBody = new { reliability = 5, communication = 4, publicationDelayDays = 30, assetIds = new[] { goodId } };
+        Assert.Equal(HttpStatusCode.BadRequest, (await provider.PostAsJsonAsync($"/api/agreements/{agreementId}/reviews",
+            new { communication = 4, publicationDelayDays = 1, assetIds = new[] { goodId } })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync($"/api/agreements/{agreementId}/reviews", reviewBody)).StatusCode);
+        Assert.Empty((await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/media/agreements/{agreementId}")).EnumerateArray());
+        Assert.Equal(HttpStatusCode.NotFound, (await provider.GetAsync($"/api/media/{goodId}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await provider.PostAsJsonAsync($"/api/media/{goodId}/report",
+            new { reason = "misleading", details = "Wrong outcome" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await provider.PostAsJsonAsync($"/api/agreements/{agreementId}/reviews",
+            new { communication = 4, clarity = 5, publicationDelayDays = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await provider.GetAsync($"/api/media/{goodId}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await provider.PostAsJsonAsync($"/api/media/{goodId}/report",
+            new { reason = "misleading", details = "" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await provider.PostAsJsonAsync($"/api/media/{goodId}/report",
+            new { reason = "misleading", details = "Wrong outcome" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await provider.PostAsJsonAsync($"/api/media/{goodId}/exclude",
+            new { reason = "No" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsync($"/api/agreements/{agreementId}/reviews/mine/withdraw", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await provider.GetAsync($"/api/media/{goodId}/content")).StatusCode);
+
+        using (var scope = factory.Services.CreateScope()) {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeState = "disputed";
+            await db.SaveChangesAsync();
+        }
+        var caseGrant = await requester.PostAsJsonAsync("/api/media/upload-grants",
+            new { agreementId, purpose = "case", kind = "evidence", contentType = "image/jpeg" });
+        Assert.Equal(HttpStatusCode.Created, caseGrant.StatusCode);
+        var caseId = (await caseGrant.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        factory.Media.Put($"quarantine/{caseId:N}", baseBytes);
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsync($"/api/media/{caseId}/finalise", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await provider.GetAsync($"/api/media/{caseId}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync($"/api/media/{caseId}/content")).StatusCode);
+        using (var scope = factory.Services.CreateScope()) {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            Assert.Single(await db.MediaAccessAudits.Where(x => x.MediaAssetId == caseId).ToListAsync());
+            Assert.Single(await db.SafetyReports.Where(x => x.MediaAssetId == goodId).ToListAsync());
+        }
+        Assert.Equal(HttpStatusCode.Forbidden, (await provider.GetAsync($"/api/media/agreements/{agreementId}/case-evidence")).StatusCode);
+        Assert.Single((await staff.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/media/agreements/{agreementId}/case-evidence")).EnumerateArray());
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsync($"/api/media/{caseId}/withdraw", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/api/media/{caseId}/content")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Reviews_enforce_eligibility_hidden_publication_roles_and_reputation_recalculation()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        using var provider = factory.CreateClient();
+        using var outsider = factory.CreateClient();
+        using var operatorClient = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "review-requester"));
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "review-provider"));
+        outsider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "review-outsider"));
+        operatorClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            factory.Token(subject: "review-operator", group: "safety-operators"));
+        var requesterId = (await requester.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me")).GetProperty("id").GetGuid();
+        var providerId = (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/users/me")).GetProperty("id").GetGuid();
+        var agreementId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            db.Engagements.Add(new Engagement {
+                Id = agreementId, RequesterId = requesterId, ProviderId = providerId,
+                OutcomeState = "awaiting_confirmation", OutcomeUpdatedAt = DateTime.UtcNow,
+                ConnectionRequestId = Guid.NewGuid(), NeedId = Guid.NewGuid(), OfferingId = Guid.NewGuid()
+            });
+            await db.SaveChangesAsync();
+        }
+        var path = $"/api/agreements/{agreementId}";
+        var requesterBody = new { reliability = 5, communication = 4, agreement = 3,
+            comment = "Helpful provider", publicationDelayDays = 30 };
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"{path}/review-eligibility")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"{path}/reviews")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/reviews", requesterBody)).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeState = "both_confirmed";
+            agreement.OutcomeUpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await provider.PostAsJsonAsync($"{path}/reviews", requesterBody)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await requester.PostAsJsonAsync($"{path}/reviews",
+            new { reliability = 5, publicationDelayDays = 31 })).StatusCode);
+        var first = await requester.PostAsJsonAsync($"{path}/reviews", requesterBody);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        var firstId = (await first.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/reviews", requesterBody)).StatusCode);
+        var hidden = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/reviews");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, hidden.GetProperty("reciprocal").ValueKind);
+        Assert.Equal(0, (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{providerId}/reputation"))
+            .GetProperty("asProvider").GetProperty("reviewCount").GetInt32());
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var review = await db.EngagementReviews.SingleAsync(x => x.Id == firstId);
+            review.PublishAfterAt = DateTime.UtcNow.AddSeconds(-1);
+            await db.SaveChangesAsync();
+        }
+        var afterOwnDeadline = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/reviews");
+        Assert.Equal("Helpful provider", afterOwnDeadline.GetProperty("reciprocal").GetProperty("comment").GetString());
+        Assert.Equal(1, (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{providerId}/reputation"))
+            .GetProperty("asProvider").GetProperty("reviewCount").GetInt32());
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeUpdatedAt = DateTime.UtcNow.AddDays(-31);
+            await db.SaveChangesAsync();
+        }
+        var expired = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/review-eligibility");
+        Assert.False(expired.GetProperty("eligible").GetBoolean());
+        Assert.Equal(HttpStatusCode.Conflict, (await provider.PostAsJsonAsync($"{path}/reviews", new {
+            communication = 2, publicationDelayDays = 1
+        })).StatusCode);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeUpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(HttpStatusCode.Forbidden, (await requester.PostAsJsonAsync($"/api/reviews/{firstId}/exclude",
+            new { reason = "No" })).StatusCode);
+        var second = await provider.PostAsJsonAsync($"{path}/reviews", new {
+            communication = 2, clarity = 4, commitments = 5, comment = "Clear brief", publicationDelayDays = 1
+        });
+        Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        var published = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/reviews");
+        Assert.Equal("Helpful provider", published.GetProperty("reciprocal").GetProperty("comment").GetString());
+        var reputation = await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{providerId}/reputation");
+        Assert.Equal(1, reputation.GetProperty("asProvider").GetProperty("reviewCount").GetInt32());
+        Assert.Equal(5, reputation.GetProperty("asProvider").GetProperty("dimensions")
+            .GetProperty("reliability").GetProperty("average").GetDouble());
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeState = "disputed";
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(System.Text.Json.JsonValueKind.Null,
+            (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"{path}/reviews")).GetProperty("reciprocal").ValueKind);
+        Assert.Equal(0, (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{providerId}/reputation"))
+            .GetProperty("asProvider").GetProperty("reviewCount").GetInt32());
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var agreement = await db.Engagements.SingleAsync(x => x.Id == agreementId);
+            agreement.OutcomeState = "both_confirmed";
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsync($"{path}/reviews/mine/withdraw", null)).StatusCode);
+        Assert.Equal(0, (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{providerId}/reputation"))
+            .GetProperty("asProvider").GetProperty("reviewCount").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/reviews", requesterBody)).StatusCode);
+        var secondId = (await second.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, (await operatorClient.PostAsJsonAsync($"/api/reviews/{secondId}/exclude",
+            new { reason = "Policy review" })).StatusCode);
+        Assert.Equal(0, (await requester.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/members/{requesterId}/reputation"))
+            .GetProperty("asRequester").GetProperty("reviewCount").GetInt32());
+        var hiddenAgreementId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            db.Engagements.Add(new Engagement {
+                Id = hiddenAgreementId, RequesterId = requesterId, ProviderId = providerId,
+                OutcomeState = "both_confirmed", OutcomeUpdatedAt = DateTime.UtcNow,
+                ConnectionRequestId = Guid.NewGuid(), NeedId = Guid.NewGuid(), OfferingId = Guid.NewGuid()
+            });
+            await db.SaveChangesAsync();
+        }
+        var hiddenPath = $"/api/agreements/{hiddenAgreementId}/reviews";
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync(hiddenPath, requesterBody)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsync($"{hiddenPath}/mine/withdraw", null)).StatusCode);
+        Assert.Equal(System.Text.Json.JsonValueKind.Null,
+            (await provider.GetFromJsonAsync<System.Text.Json.JsonElement>(hiddenPath)).GetProperty("reciprocal").ValueKind);
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync(hiddenPath, requesterBody)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Independent_outcomes_keep_history_and_reject_stale_or_unauthorised_actions()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        using var provider = factory.CreateClient();
+        using var outsider = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "outcome-requester"));
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "outcome-provider"));
+        outsider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "outcome-outsider"));
+        var need = await requester.PostAsJsonAsync("/api/needs", new {
+            title = "Outcome need", description = "Outcome acceptance", category = "Technology",
+            skills = new[] { "Programming" }, currency = "NZD", pricingBasis = "free"
+        });
+        var offer = await provider.PostAsJsonAsync("/api/offerings", new {
+            title = "Outcome offer", description = "Outcome acceptance", category = "Technology",
+            skills = new[] { "Programming" }, location = "Auckland", currency = "NZD", pricingBasis = "free", experienceYears = 0
+        });
+        Assert.Equal(HttpStatusCode.Created, need.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, offer.StatusCode);
+        var needId = (await need.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var offerId = (await offer.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var proposed = await requester.PostAsJsonAsync("/api/connection-requests", new {
+            needId, offeringId = offerId, needRevision = 1, offeringRevision = 1,
+            terms = "Outcome work terms", pricingBasis = "free"
+        });
+        Assert.Equal(HttpStatusCode.Created, proposed.StatusCode);
+        var requestId = (await proposed.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var accepted = await provider.PostAsJsonAsync($"/api/connection-requests/{requestId}/accept",
+            new { revision = 1, idempotencyKey = "outcome-accept" });
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        var id = (await accepted.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var path = $"/api/agreements/{id}/outcome";
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync(path)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.PostAsJsonAsync($"{path}/report",
+            new { revision = 1, idempotencyKey = "outside", outcome = "completed" })).StatusCode);
+        var firstBody = new { revision = 1, idempotencyKey = "requester-report", outcome = "completed" };
+        var first = await requester.PostAsJsonAsync($"{path}/report", firstBody);
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal("one_reported", (await first.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("outcomeState").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsJsonAsync($"{path}/report", firstBody)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await provider.PostAsJsonAsync($"{path}/report",
+            new { revision = 1, idempotencyKey = "stale", outcome = "completed" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/report",
+            new { revision = 2, idempotencyKey = "duplicate", outcome = "completed" })).StatusCode);
+        var second = await provider.PostAsJsonAsync($"{path}/report",
+            new { revision = 2, idempotencyKey = "provider-report", outcome = "completed" });
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var both = await second.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal("both_confirmed", both.GetProperty("outcomeState").GetString());
+        Assert.Equal(2, both.GetProperty("history").GetArrayLength());
+        Assert.Equal(HttpStatusCode.Conflict, (await requester.PostAsJsonAsync($"{path}/cancel",
+            new { revision = 3, idempotencyKey = "late-cancel", reason = "No longer needed" })).StatusCode);
+        var dispute = await requester.PostAsJsonAsync($"{path}/dispute",
+            new { revision = 3, idempotencyKey = "dispute", reason = "Completion is contested" });
+        Assert.Equal(HttpStatusCode.OK, dispute.StatusCode);
+        Assert.Equal("disputed", (await dispute.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("outcomeState").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await outsider.GetAsync("/api/outcome-disputes")).StatusCode);
+        using var operatorClient = factory.CreateClient();
+        operatorClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            factory.Token(subject: "outcome-operator", group: "safety-operators"));
+        var queue = await operatorClient.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/outcome-disputes");
+        Assert.Contains(queue.EnumerateArray(), item => item.GetProperty("id").GetGuid() == id);
+        var reviewed = await operatorClient.PostAsJsonAsync($"/api/outcome-disputes/{id}/review",
+            new { note = "Reviewed and referred to support" });
+        Assert.Equal(HttpStatusCode.OK, reviewed.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await operatorClient.PostAsJsonAsync($"/api/outcome-disputes/{id}/review",
+            new { note = "Duplicate review" })).StatusCode);
+        using var fresh = factory.CreateClient();
+        fresh.DefaultRequestHeaders.Authorization = requester.DefaultRequestHeaders.Authorization;
+        var saved = await fresh.GetFromJsonAsync<System.Text.Json.JsonElement>(path);
+        Assert.Equal(4, saved.GetProperty("history").GetArrayLength());
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, saved.GetProperty("disputeReviewedAt").ValueKind);
+    }
+
+    [Fact]
+    public async Task Pilot_api_journey_reaches_both_confirmed_feedback_and_measured_cohort()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        using var provider = factory.CreateClient();
+        using var outsider = factory.CreateClient();
+        using var staff = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-journey-requester"));
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-journey-provider"));
+        outsider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-journey-outsider"));
+        staff.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-journey-staff", group: "pilot-viewers"));
+        var needResponse = await requester.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Garden help", "Need weeding", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", null, "NZD", "negotiable"));
+        var offerResponse = await provider.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Garden help", "Weeding available", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"));
+        Assert.Equal(HttpStatusCode.Created, needResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, offerResponse.StatusCode);
+        var needId = (await needResponse.Content.ReadFromJsonAsync<Listing>())!.Id;
+        var offeringId = (await offerResponse.Content.ReadFromJsonAsync<Listing>())!.Id;
+        Assert.Equal(HttpStatusCode.OK, (await requester.GetAsync($"/api/needs/{needId}/matches")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync("/api/pilot/signals/discovery",
+            new { needId, clientKey = "journey-search" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync("/api/pilot/signals/suitable",
+            new { needId, offeringId, clientKey = "journey-suitable" })).StatusCode);
+        var proposal = await requester.PostAsJsonAsync("/api/connection-requests", new {
+            needId, offeringId, needRevision = 1, offeringRevision = 1,
+            terms = "Weed the garden on Saturday morning.", pricingBasis = "free"
+        });
+        Assert.Equal(HttpStatusCode.Created, proposal.StatusCode);
+        var requestId = (await proposal.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        var accepted = await provider.PostAsJsonAsync($"/api/connection-requests/{requestId}/accept",
+            new { revision = 1, idempotencyKey = "journey-accept" });
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        var agreementId = (await accepted.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"/api/agreements/{agreementId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync(
+            $"/api/agreements/{agreementId}/conversation/messages",
+            new { text = "Saturday works.", idempotencyKey = "journey-message" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync(
+            $"/api/agreements/{agreementId}/conversation/messages")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await requester.PostAsJsonAsync(
+            $"/api/agreements/{agreementId}/outcome/report",
+            new { revision = 1, idempotencyKey = "journey-requester-outcome", outcome = "completed" })).StatusCode);
+        var secondOutcome = await provider.PostAsJsonAsync($"/api/agreements/{agreementId}/outcome/report",
+            new { revision = 2, idempotencyKey = "journey-provider-outcome", outcome = "completed" });
+        Assert.Equal(HttpStatusCode.OK, secondOutcome.StatusCode);
+        Assert.Equal("both_confirmed", (await secondOutcome.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>())
+            .GetProperty("outcomeState").GetString());
+        Assert.Equal(HttpStatusCode.Created, (await requester.PostAsJsonAsync($"/api/agreements/{agreementId}/reviews",
+            new { reliability = 5, communication = 4, agreement = 5, publicationDelayDays = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await provider.PostAsJsonAsync($"/api/agreements/{agreementId}/reviews",
+            new { communication = 4, clarity = 5, commitments = 5, publicationDelayDays = 1 })).StatusCode);
+        var from = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(-5).ToString("O"));
+        var to = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(1).ToString("O"));
+        var path = $"/api/pilot/metrics?from={from}&to={to}";
+        Assert.Equal(HttpStatusCode.Forbidden, (await outsider.GetAsync(path)).StatusCode);
+        var report = await staff.GetFromJsonAsync<System.Text.Json.JsonElement>(path);
+        Assert.Equal(1, report.GetProperty("discovery").GetProperty("coveredNeeds").GetInt32());
+        Assert.Equal(1, report.GetProperty("suitability").GetProperty("markedNeeds").GetInt32());
+        Assert.Equal(1, report.GetProperty("acceptance").GetProperty("numerator").GetInt32());
+        Assert.Equal(1, report.GetProperty("completion").GetProperty("numerator").GetInt32());
+        Assert.Equal(2, report.GetProperty("feedback").GetProperty("submittedParticipantSlots").GetInt32());
+    }
+
+    [Fact]
+    public async Task Pilot_metrics_require_group_and_count_distinct_saved_outcomes()
+    {
+        using var factory = new ApiFactory();
+        using var member = factory.CreateClient();
+        member.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        var from = DateTime.UtcNow.AddDays(-1);
+        var to = DateTime.UtcNow.AddMinutes(1);
+        var path = $"/api/pilot/metrics?from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(to.ToString("O"))}";
+        Assert.Equal(HttpStatusCode.Forbidden, (await member.GetAsync(path)).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+        var request = new ConnectionRequest { SenderId = Guid.NewGuid(), RecipientId = Guid.NewGuid(), CreatedAt = DateTime.UtcNow.AddHours(-1) };
+        var accepted = new Engagement { ConnectionRequestId = request.Id, RequesterId = request.SenderId,
+            ProviderId = request.RecipientId, AcceptedAt = DateTime.UtcNow, OutcomeState = "both_confirmed" };
+        var otherRequests = Enumerable.Range(0, 4).Select(_ => new ConnectionRequest {
+            SenderId = request.SenderId, RecipientId = request.RecipientId, CreatedAt = DateTime.UtcNow.AddMinutes(-30)
+        }).ToArray();
+        db.ConnectionRequests.Add(request);
+        db.ConnectionRequests.AddRange(otherRequests);
+        db.Engagements.Add(accepted);
+        db.Engagements.AddRange(new[] { "one_reported", "cancelled", "disputed" }.Select((state, index) =>
+            new Engagement { ConnectionRequestId = otherRequests[index].Id, RequesterId = request.SenderId,
+                ProviderId = request.RecipientId, OutcomeState = state }));
+        db.EngagementOutcomeEvents.Add(new EngagementOutcomeEvent { EngagementId = accepted.Id,
+            ActorId = request.SenderId, Action = "report", ReportedOutcome = "completed" });
+        db.EngagementOutcomeEvents.Add(new EngagementOutcomeEvent { EngagementId = accepted.Id,
+            ActorId = request.RecipientId, Action = "report", ReportedOutcome = "completed" });
+        db.EngagementReviews.Add(new EngagementReview { EngagementId = accepted.Id,
+            ReviewerId = request.SenderId, RevieweeId = request.RecipientId, ReviewerRole = "requester",
+            Reliability = 4, Communication = 5, PublishedAt = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+        using var staff = factory.CreateClient();
+        staff.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(group: "safety-operators"));
+        var report = await staff.GetFromJsonAsync<System.Text.Json.JsonElement>(path);
+        Assert.Equal(5, report.GetProperty("cohort").GetProperty("requestCount").GetInt32());
+        Assert.Equal(4, report.GetProperty("acceptance").GetProperty("numerator").GetInt32());
+        Assert.Equal(1, report.GetProperty("completion").GetProperty("numerator").GetInt32());
+        Assert.Equal(1, report.GetProperty("completion").GetProperty("oneReported").GetInt32());
+        Assert.Equal(1, report.GetProperty("completion").GetProperty("cancelled").GetInt32());
+        Assert.Equal(1, report.GetProperty("completion").GetProperty("disputed").GetInt32());
+        Assert.Equal(1, report.GetProperty("feedback").GetProperty("submittedParticipantSlots").GetInt32());
+        Assert.Equal(2, report.GetProperty("feedback").GetProperty("eligibleParticipantSlots").GetInt32());
+        Assert.Equal(2, report.GetProperty("feedback").GetProperty("publishedRatingCount").GetInt32());
+        Assert.Equal(2, report.GetProperty("repeatUse").GetProperty("numerator").GetInt32());
+        using var pilotViewer = factory.CreateClient();
+        pilotViewer.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(group: "pilot-viewers"));
+        Assert.Equal(HttpStatusCode.OK, (await pilotViewer.GetAsync(path)).StatusCode);
+        using var wrongGroup = factory.CreateClient();
+        wrongGroup.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(group: "other-staff"));
+        Assert.Equal(HttpStatusCode.Forbidden, (await wrongGroup.GetAsync(path)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await staff.GetAsync("/api/pilot/metrics?from=2026-10-10T00:00:00Z&to=2026-10-09T00:00:00Z")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Pilot_signals_are_owned_idempotent_and_excluded_from_demo_free_cohorts()
+    {
+        using var factory = new ApiFactory();
+        using var requester = factory.CreateClient();
+        requester.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-requester"));
+        var needResponse = await requester.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Garden help", "Need some weeding", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", null, "NZD", "negotiable"));
+        Assert.Equal(HttpStatusCode.Created, needResponse.StatusCode);
+        var need = await needResponse.Content.ReadFromJsonAsync<Listing>();
+        var secondNeedResponse = await requester.PostAsJsonAsync("/api/needs", new CreateNeedRequest(
+            "Lawn help", "Need lawn mowing", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", null, "NZD", "negotiable"));
+        Assert.Equal(HttpStatusCode.Created, secondNeedResponse.StatusCode);
+        var secondNeed = await secondNeedResponse.Content.ReadFromJsonAsync<Listing>();
+        using var provider = factory.CreateClient();
+        provider.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(subject: "pilot-provider"));
+        var offeringResponse = await provider.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Garden help", "Can help with weeding", "Home and Garden", ["Gardening"], null, null,
+            "Auckland", false, null, null, 0, "NZD", "negotiable"));
+        Assert.Equal(HttpStatusCode.Created, offeringResponse.StatusCode);
+        var offering = await offeringResponse.Content.ReadFromJsonAsync<Listing>();
+        var discovery = new { needId = need!.Id, clientKey = "view-one" };
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await provider.PostAsJsonAsync("/api/pilot/signals/discovery", discovery)).StatusCode);
+        var first = await requester.PostAsJsonAsync("/api/pilot/signals/discovery", discovery);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/discovery", discovery)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/discovery", new { needId = secondNeed!.Id, clientKey = "view-one" })).StatusCode);
+        var suitable = new { needId = need.Id, offeringId = offering!.Id, clientKey = "suitable-one" };
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await provider.PostAsJsonAsync("/api/pilot/signals/suitable", suitable)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/suitable", suitable)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/suitable", suitable)).StatusCode);
+        var ineligibleResponse = await provider.PostAsJsonAsync("/api/offerings", new CreateOfferingRequest(
+            "Garden help elsewhere", "Can help with weeding elsewhere", "Home and Garden", ["Gardening"], null, null,
+            "Wellington", false, null, null, 0, "NZD", "negotiable"));
+        Assert.Equal(HttpStatusCode.Created, ineligibleResponse.StatusCode);
+        var ineligibleOffering = await ineligibleResponse.Content.ReadFromJsonAsync<Listing>();
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/suitable", new {
+                needId = need.Id, offeringId = ineligibleOffering!.Id, clientKey = "suitable-ineligible"
+            })).StatusCode);
+        using var staff = factory.CreateClient();
+        staff.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token(group: "safety-operators"));
+        var from = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-1).ToString("O"));
+        var to = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(1).ToString("O"));
+        var report = await staff.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/pilot/metrics?from={from}&to={to}");
+        Assert.Equal(1, report.GetProperty("discovery").GetProperty("searchedNeeds").GetInt32());
+        Assert.Equal(1, report.GetProperty("suitability").GetProperty("markedNeedOfferingPairs").GetInt32());
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ConnectoDbContext>();
+            var storedNeed = await db.Needs.SingleAsync(x => x.Id == need.Id);
+            storedNeed.Status = NeedStatus.Paused;
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal(HttpStatusCode.OK,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/discovery", discovery)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await requester.PostAsJsonAsync("/api/pilot/signals/discovery", new {
+                needId = need.Id, clientKey = "new-after-pause"
+            })).StatusCode);
+    }
+
     private sealed class ApiFactory(string apiKey = "") : WebApplicationFactory<Program>
     {
+        public FakeMediaStore Media { get; } = new();
         private readonly RSA rsa = RSA.Create(2048);
         private readonly string database = Guid.NewGuid().ToString();
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -607,11 +1131,14 @@ public class AuthenticationTests
             builder.UseSetting("Cognito:Audience", "test-client");
             builder.UseSetting("OpenAI:ApiKey", apiKey);
             builder.UseSetting("Safety:OperatorGroup", "safety-operators");
+            builder.UseSetting("Pilot:ViewerGroup", "pilot-viewers");
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<ConnectoDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<ConnectoDbContext>>();
                 services.AddDbContext<ConnectoDbContext>(options => options.UseInMemoryDatabase(database));
+                services.RemoveAll<IMediaObjectStore>();
+                services.AddSingleton<IMediaObjectStore>(Media);
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     var configuration = new OpenIdConnectConfiguration { Issuer = "https://test-issuer.example" };
@@ -638,5 +1165,22 @@ public class AuthenticationTests
             base.Dispose(disposing);
             if (disposing) rsa.Dispose();
         }
+    }
+
+    private sealed class FakeMediaStore : IMediaObjectStore
+    {
+        public bool IsAvailable => true;
+        private readonly ConcurrentDictionary<string, byte[]> objects = new();
+        public void Put(string key, byte[] bytes) => objects[key] = bytes;
+        public Task<(string Url, Dictionary<string, string> Fields)> UploadGrantAsync(string key, string contentType, DateTime expiresAt) =>
+            Task.FromResult(("https://private.invalid/upload", new Dictionary<string, string> { ["key"] = key, ["Content-Type"] = contentType }));
+        public Task<(Stream Body, long Length)> ReadAsync(string key, CancellationToken ct) {
+            if (!objects.TryGetValue(key, out var bytes)) throw new Amazon.S3.AmazonS3Exception("Missing") { StatusCode = HttpStatusCode.NotFound };
+            return Task.FromResult<(Stream, long)>((new MemoryStream(bytes), bytes.Length));
+        }
+        public async Task WriteAsync(string key, Stream body, string contentType, CancellationToken ct) {
+            using var memory = new MemoryStream(); await body.CopyToAsync(memory, ct); objects[key] = memory.ToArray();
+        }
+        public Task DeleteAsync(string key, CancellationToken ct) { objects.TryRemove(key, out _); return Task.CompletedTask; }
     }
 }

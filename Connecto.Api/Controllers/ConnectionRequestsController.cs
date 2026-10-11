@@ -219,7 +219,8 @@ public sealed class ConnectionRequestsController(ConnectoDbContext db, ICurrentU
     {
         x.Id, x.ConnectionRequestId, x.NeedId, x.OfferingId, x.RequesterId, x.ProviderId,
         x.NeedTitle, x.OfferingTitle, x.NeedRevision, x.OfferingRevision,
-        x.Terms, x.Currency, x.PricingBasis, x.AgreedAmount, x.AcceptedAt
+        x.Terms, x.Currency, x.PricingBasis, x.AgreedAmount, x.AcceptedAt,
+        x.OutcomeState, x.OutcomeRevision, x.OutcomeUpdatedAt
     };
 
     private async Task<IActionResult> Decide(Guid id, int revision, string status, CancellationToken cancellationToken)

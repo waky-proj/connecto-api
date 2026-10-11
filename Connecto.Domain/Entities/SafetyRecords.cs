@@ -14,6 +14,7 @@ public sealed class SafetyReport
     public Guid ReporterId { get; set; }
     public Guid SubjectId { get; set; }
     public Guid? OfferingId { get; set; }
+    public Guid? MediaAssetId { get; set; }
     public string Reason { get; set; } = "";
     public string Details { get; set; } = "";
     public string Status { get; set; } = "open";
